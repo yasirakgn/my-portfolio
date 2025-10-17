@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User } from 'lucide-react';
+import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle } from 'lucide-react';
 
 // --- SIMULASYON SABITLERI ---
 const INPUT_CONVEYOR_Y = 300; 
@@ -26,18 +26,21 @@ const PART_WIDTH = 30;
 const PART_HEIGHT = 30;
 const BIN_WIDTH = 50;
 
-// Orijinal mantıksal boyutlar (çizim koordinatları bu boyuta göre ayarlanmıştır)
+// Orijinal mantıksal boyutlar
 const ORIGINAL_WIDTH = 800; 
 const ORIGINAL_HEIGHT = 400; 
 
+// Yeni Renk ve Tip Haritası: TYPE_A üst kola (Mavi Kutu), TYPE_B alt kola (Kırmızı Kutu) gider
+const COLOR_MAP = {
+    "MAVI": { color: "#2563EB", type: "TYPE_A", name: "Mavi" }, 
+    "KIRMIZI": { color: "#DC2626", type: "TYPE_B", name: "Kırmızı" },
+    "YESIL": { color: "#10B981", type: "TYPE_A", name: "Yeşil" },
+    "SARI": { color: "#F59E0B", type: "TYPE_B", name: "Sarı" },
+    "MOR": { color: "#9333EA", type: "TYPE_A", name: "Mor" },
+};
+
 // Varsayılan Üretim Planı
-const DEFAULT_PART_QUEUE_JSON = JSON.stringify([
-    { "type": "BLUE" },
-    { "type": "RED" },
-    { "type": "BLUE" },
-    { "type": "BLUE" },
-    { "type": "RED" }
-], null, 2);
+const DEFAULT_PART_QUEUE_TEXT = "Mavi, Kırmızı, Yeşil, Mavi, Sarı, Kırmızı, Mor";
 
 
 // Utility Functions
@@ -48,7 +51,7 @@ const App = () => {
     const canvasRef = useRef(null);
     const animationRef = useRef(null);
     const containerRef = useRef(null); 
-    const scaleFactorRef = useRef(1); // Ölçeklendirme faktörü ref'i
+    const scaleFactorRef = useRef(1); 
 
     // Simulation State
     const [isRunning, setIsRunning] = useState(false);
@@ -57,8 +60,8 @@ const App = () => {
     const [finishedCount, setFinishedCount] = useState(0);
     const [message, setMessage] = useState("Üretim planını düzenleyin ve başlamak için START'a basın.");
     
-    // Kullanıcı tarafından düzenlenebilir üretim planı
-    const [partQueueJson, setPartQueueJson] = useState(DEFAULT_PART_QUEUE_JSON);
+    // Kullanıcı tarafından düzenlenebilir üretim planı (Metin)
+    const [partQueueText, setPartQueueText] = useState(DEFAULT_PART_QUEUE_TEXT);
 
     // Simulation Refs
     const robotPosRef = useRef({ x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
@@ -67,41 +70,48 @@ const App = () => {
     const outputPartsRef = useRef([]); 
     const inputPartRef = useRef(null); 
     const partRecipeRef = useRef([]); 
+    const [validRecipeLength, setValidRecipeLength] = useState(0); // YENİ: Geçerli parça sayısı
 
-    // Parça Listesini Başlatma (Artık JSON'dan okuyor)
+    // Parça Listesini Başlatma (Metinden okuyor ve ayrıştırıyor)
     const initializeParts = useCallback(() => {
-        try {
-            const parsedQueue = JSON.parse(partQueueJson);
-            if (!Array.isArray(parsedQueue)) {
-                throw new Error("JSON bir dizi (array) olmalıdır.");
-            }
-            
-            // Kullanıcının tanımladığı planı tam parça nesnelerine dönüştür
-            const fullRecipe = parsedQueue.map(p => {
-                if (!p.type || (p.type !== 'BLUE' && p.type !== 'RED')) {
-                    throw new Error(`Geçersiz parça türü: '${p.type}'. Sadece 'BLUE' veya 'RED' kullanılabilir.`);
-                }
-                return {
-                    color: p.type === 'BLUE' ? "#2563EB" : "#DC2626",
-                    type: p.type
-                };
-            });
-            
-            partRecipeRef.current = fullRecipe;
-            setMessage(`Üretim planı yüklendi: ${fullRecipe.length} parça. Sistem hazır.`);
+        // Metni büyük harfe çevir, virgülle ayır, boşlukları temizle ve boş girdileri filtrele
+        const partsText = partQueueText.toUpperCase().split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const fullRecipe = [];
+        const invalidParts = [];
 
-        } catch (e) {
-            partRecipeRef.current = [];
-            setMessage(`🔴 HATA: Üretim planı JSON formatı geçersiz! ${e.message}`);
+        for (const partName of partsText) {
+            const partInfo = COLOR_MAP[partName];
+            if (partInfo) {
+                fullRecipe.push({
+                    color: partInfo.color,
+                    type: partInfo.type, 
+                    name: partInfo.name, 
+                });
+            } else {
+                invalidParts.push(partName);
+            }
+        }
+
+        partRecipeRef.current = fullRecipe;
+        setValidRecipeLength(fullRecipe.length); // Geçerli uzunluğu güncelle
+
+        if (invalidParts.length > 0) {
+            const availableNames = Object.keys(COLOR_MAP).map(k => COLOR_MAP[k].name).join(', ');
+            setMessage(`🚨 Üretim planında GEÇERSİZ renkler bulundu: ${invalidParts.join(', ')}. Lütfen sadece: ${availableNames} kullanın.`);
+        } else if (fullRecipe.length > 0) {
+            setMessage(`Üretim planı yüklendi: ${fullRecipe.length} parça. Sistem hazır.`);
+        } else {
+            setMessage("Üretim planı boş veya sadece geçersiz renkler içeriyor. Lütfen bir plan girin.");
         }
 
         robotPartRef.current = null;
         outputPartsRef.current = [];
         inputPartRef.current = null;
-    }, [partQueueJson]);
+    }, [partQueueText]); 
 
     // JSON değiştiğinde veya başlangıçta üretim planını yükle
     useEffect(() => {
+        // Kullanıcı arayüzüne ilk yüklemede geri bildirim vermek için
         initializeParts();
     }, [initializeParts]);
 
@@ -115,12 +125,13 @@ const App = () => {
                 width: PART_WIDTH,
                 height: PART_HEIGHT,
                 color: nextPart.color,
-                type: nextPart.type,
+                type: nextPart.type, 
+                name: nextPart.name, 
                 held: false,
                 id: Date.now() + Math.random(),
                 counted: false, 
             };
-            setMessage(`Yeni parça (${nextPart.type}) giriş konveyöründe. Robot bekliyor.`);
+            setMessage(`Yeni parça (${nextPart.name}) giriş konveyöründe. Robot bekliyor.`);
         }
     }, []);
 
@@ -132,12 +143,16 @@ const App = () => {
     // PLC Step Logic Definition
     const plcStepsRef = useRef({
         0: () => {
+            // SADECE parça yoksa ve kuyrukta parça varsa yeni parça üret
             if (robotPartRef.current === null && inputPartRef.current === null && partRecipeRef.current.length > 0) {
                 spawnNewPart(); 
             }
+            // Giriş parça toplama noktasına ulaştıysa (INPUT_PICKUP_X) robotu harekete geçir
             if (inputPartRef.current && inputPartRef.current.x >= INPUT_PICKUP_X) {
                 setStep(10);
-            } else if (partRecipeRef.current.length === 0 && outputPartsRef.current.every(p => !p.isMoving && p.counted)) {
+            } 
+            // Kuyrukta parça yoksa ve konveyörde hareket eden parça kalmadıysa dur
+            else if (partRecipeRef.current.length === 0 && outputPartsRef.current.every(p => !p.isMoving && p.counted)) {
                 setMessage("Tüm parçalar işlendi. Yeni bir plan oluşturun veya SIFIRLA yapın.");
                 setIsRunning(false);
             }
@@ -153,7 +168,7 @@ const App = () => {
             if (inputPartRef.current) {
                 robotPartRef.current = { ...inputPartRef.current, held: true };
                 inputPartRef.current = null; 
-                setMessage(`Parça (${robotPartRef.current.type}) kavrandı. Ana Konveyöre ilerliyor.`);
+                setMessage(`Parça (${robotPartRef.current.name}) kavrandı. Ana Konveyöre ilerliyor.`);
                 setTimeout(() => setStep(30), 300);
             }
         },
@@ -165,6 +180,10 @@ const App = () => {
         },
         40: () => {
             if (robotPartRef.current) {
+                const isTypeA = robotPartRef.current.type === 'TYPE_A';
+                const targetConveyorId = isTypeA ? 'A' : 'B';
+                const targetY = isTypeA ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
+
                 outputPartsRef.current.push({
                     ...robotPartRef.current,
                     held: false,
@@ -172,14 +191,14 @@ const App = () => {
                     y: MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT,
                     isMoving: true,
                     conveyorPhase: 'MAIN', 
-                    conveyorId: null,
-                    targetY: null,
+                    conveyorId: targetConveyorId,
+                    targetY: targetY,
                     diverterProgress: 0,
                     counted: false, 
                 });
 
                 robotPartRef.current = null;
-                setMessage(`Parça Ana Konveyör üzerine bırakıldı. Yönlendirme bekleniyor.`);
+                setMessage(`Parça (${targetConveyorId} için) Ana Konveyör üzerine bırakıldı. Yönlendirme bekleniyor.`);
                 setTimeout(() => setStep(50), 500);
             }
         },
@@ -198,20 +217,13 @@ const App = () => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         
-        // --- RESPONSIF CANVAS BOYUTLANDIRMA MANTIGI (GÜNCELLENDİ) ---
         const resizeCanvas = () => {
             const container = containerRef.current;
             if (container) {
                 const newWidth = container.clientWidth;
-                
-                // Genişliği konteynere tam sığdır
                 canvas.width = newWidth; 
-                
-                // Orijinal 2:1 en boy oranını koru (400/800)
                 const newHeight = newWidth * (ORIGINAL_HEIGHT / ORIGINAL_WIDTH); 
                 canvas.height = newHeight;
-                
-                // Ölçeklendirme faktörünü hesapla ve sakla
                 scaleFactorRef.current = newWidth / ORIGINAL_WIDTH;
             }
         };
@@ -238,7 +250,6 @@ const App = () => {
                 ctx.fillStyle = "#9CA3AF"; 
                 const segmentLength = 40;
                 for (let i = startX; i < endX; i += segmentLength) {
-                    // Animasyon ofsetini CONVEYOR_SPEED ile hesapla
                     const rollerX = i + (animationRef.current.offset * 0.5) % segmentLength; 
                     ctx.beginPath();
                     ctx.arc(rollerX, y + 10, 3, 0, Math.PI * 2);
@@ -263,8 +274,8 @@ const App = () => {
             
             drawConveyorLine(0, INPUT_CONVEYOR_Y, INPUT_PICKUP_X + 50, "Giriş Konveyörü");
             drawConveyorLine(OUTPUT_DROP_X - 50, MAIN_OUTPUT_CONVEYOR_Y, DIVERTER_X + 20, "Ana Konveyör");
-            drawConveyorLine(DIVERTER_X, BRANCH_A_Y, BIN_X + BIN_WIDTH, "Konveyör A (Mavi)");
-            drawConveyorLine(DIVERTER_X, BRANCH_B_Y, BIN_X + BIN_WIDTH, "Konveyör B (Kırmızı)");
+            drawConveyorLine(DIVERTER_X, BRANCH_A_Y, BIN_X + BIN_WIDTH, "Konveyör A (Mavi/Yeşil/Mor Hedefi)");
+            drawConveyorLine(DIVERTER_X, BRANCH_B_Y, BIN_X + BIN_WIDTH, "Konveyör B (Kırmızı/Sarı Hedefi)");
 
             // Yönlendirici (Diverter) Çizimi
             ctx.fillStyle = "#4B5563"; 
@@ -278,7 +289,7 @@ const App = () => {
             let angle = 0; 
             const activePart = outputPartsRef.current.find(p => p.conveyorPhase === 'DIVERTER_MOVE');
             if (activePart) {
-                const targetAngle = activePart.type === 'BLUE' ? -Math.PI / 6 : Math.PI / 6; 
+                const targetAngle = activePart.type === 'TYPE_A' ? -Math.PI / 6 : Math.PI / 6; 
                 angle = targetAngle * Math.min(activePart.diverterProgress * 2, 1); 
             }
 
@@ -319,12 +330,12 @@ const App = () => {
                 
                 ctx.fillStyle = "#FFF";
                 ctx.textAlign = "center";
-                ctx.font = "14px Inter Bold";
+                ctx.font = "12px Inter Bold";
                 ctx.fillText(label, x + BIN_WIDTH / 2, y + 55);
             };
 
-            drawBin(BIN_X, BRANCH_A_Y, "#2563EB", "MAVİ");
-            drawBin(BIN_X, BRANCH_B_Y, "#B91C1C", "KIRMIZI");
+            drawBin(BIN_X, BRANCH_A_Y, COLOR_MAP.MAVI.color, "Kutu A (Mavi, Yeşil, Mor)");
+            drawBin(BIN_X, BRANCH_B_Y, COLOR_MAP.KIRMIZI.color, "Kutu B (Kırmızı, Sarı)");
 
 
             // Sensörler
@@ -486,8 +497,11 @@ const App = () => {
                     if (p.x >= DIVERTER_X - PART_WIDTH / 2) {
                         p.conveyorPhase = 'DIVERTER_MOVE';
                         p.startY = p.y;
-                        p.targetY = p.type === 'BLUE' ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
-                        p.conveyorId = p.type === 'BLUE' ? 'A' : 'B';
+                        
+                        const isTypeA = p.type === 'TYPE_A';
+                        p.targetY = isTypeA ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
+                        p.conveyorId = isTypeA ? 'A' : 'B';
+
                         p.diverterProgress = 0;
                         setMessage(`Diverter aktif! Parça ${p.conveyorId} koluna yönlendiriliyor.`);
                     }
@@ -507,18 +521,19 @@ const App = () => {
 
                     if (p.x >= SENSOR_X && !p.passedSensor) {
                         p.passedSensor = true;
-                        setMessage(`✅ Sensör ${p.conveyorId} Parçayı algıladı. Kutulama bekleniyor.`);
+                        setMessage(`✅ Sensör ${p.conveyorId} Parçayı (${p.name}) algıladı. Kutulama bekleniyor.`);
                     }
 
                     if (p.x >= BIN_X) {
                         p.isMoving = false; 
                         p.x = BIN_X + (BIN_WIDTH / 2) - (PART_WIDTH / 2); 
-                        p.y = p.type === 'BLUE' ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
+                        
+                        p.y = p.type === 'TYPE_A' ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT; 
                         
                         if (!p.counted) {
                             p.counted = true;
                             setFinishedCount(c => c + 1);
-                            setMessage(`📦 Parça (${p.type}) Bitmiş Ürün Kutusu'na yerleştirildi.`);
+                            setMessage(`📦 Parça (${p.name}) Bitmiş Ürün Kutusu'na yerleştirildi.`);
                         }
                     }
                 }
@@ -535,13 +550,11 @@ const App = () => {
 
             animationRef.current.offset = (animationRef.current.offset + CONVEYOR_SPEED) % 60;
 
-            // Clear the physical canvas area
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
             
-            // Yüksek çözünürlüklü çizimler için ölçeklendirme uygula
             const S = scaleFactorRef.current;
-            ctx.save(); // Mevcut durumu kaydet
-            ctx.scale(S, S); // Ölçeklendirmeyi uygula
+            ctx.save(); 
+            ctx.scale(S, S); 
 
             // Drawing logic (uses 800x400 coordinates)
             drawConveyors();
@@ -560,7 +573,7 @@ const App = () => {
                 }
             }
 
-            ctx.restore(); // Ölçeklendirmeyi geri al
+            ctx.restore(); 
 
             animationRef.current.id = requestAnimationFrame(animate);
         };
@@ -576,9 +589,19 @@ const App = () => {
 
     // Controller Functions
     const handleStart = () => {
+        // YENİ: Başlamadan hemen önce metin kutusundaki veriyi zorla işle
+        initializeParts(); 
+
+        // Kontrol 1: Üretim planı boş mu?
+        if (partRecipeRef.current.length === 0) {
+            setMessage("🔴 HATA: Üretim planı boş veya geçersiz parçalar içeriyor. Lütfen metin alanını kontrol edin ve geçerli renkler kullandığınızdan emin olun!");
+            return;
+        }
+
         if (!isRunning) {
             setIsRunning(true);
-            if (inputPartRef.current === null && partRecipeRef.current.length > 0) spawnNewPart(); 
+            // İlk parçayı hemen üret
+            if (inputPartRef.current === null) spawnNewPart(); 
             if (step !== 0) setStep(0);
             setMessage("Simülasyon BAŞLADI. Robot Adım 0'da çalışıyor.");
         }
@@ -594,9 +617,9 @@ const App = () => {
         setStep(0);
         setCycleCount(0);
         setFinishedCount(0);
-        // Üretim planını varsayılana döndür
-        setPartQueueJson(DEFAULT_PART_QUEUE_JSON); 
-        // initializeParts, useEffect tarafından otomatik olarak çağrılacak
+        
+        setPartQueueText(DEFAULT_PART_QUEUE_TEXT); 
+        // initializeParts, partQueueText değiştiği için otomatik olarak çağrılacak.
         robotPosRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
         targetRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
         setMessage("Sistem SIFIRLANDI. Üretim planı yeniden yüklendi. Başlamak için START'a basın.");
@@ -693,21 +716,39 @@ const App = () => {
                             />
                         </div>
                     </div>
+                    
+                    {/* Robot PLC Adımı */}
+                    <h2 
+                        className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 flex items-center" 
+                    >
+                        <Zap className="w-6 h-6 mr-2 text-indigo-400" /> Robot PLC Adımı
+                    </h2>
+                    <StepDisplay />
 
                     {/* YENİ BÖLÜM: Üretim Planı */}
                     <h2 className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 mt-4 flex items-center">
-                        <Boxes className="w-6 h-6 mr-2 text-indigo-400" /> ÜRETİM PLANI
+                        <Boxes className="w-6 h-6 mr-2 text-indigo-400" /> ÜRETİM PLANI (Metin Listesi)
                     </h2>
                     <div className="space-y-2">
                         <p className="text-xs text-gray-400 italic">
-                            Üretilecek parçaların sırasını JSON formatında tanımlayın. Sadece "BLUE" ve "RED" türlerini kullanın.
+                            Virgülle ayrılmış parça sırasını girin. **Renk isimlerinin doğru yazıldığından emin olun.**
                         </p>
                         <textarea
-                            value={partQueueJson}
-                            onChange={(e) => setPartQueueJson(e.target.value)}
-                            rows="8"
+                            value={partQueueText}
+                            onChange={(e) => {
+                                setPartQueueText(e.target.value);
+                                // Kullanıcı yazarken anlık olarak önizleme yapmak için (Simülasyon durmuşsa)
+                                if (!isRunning) initializeParts(); 
+                            }}
+                            rows="4"
+                            placeholder="Örn: Mavi, Kırmızı, Sarı, Yeşil, Mor"
                             className="w-full font-mono text-sm p-2 bg-gray-900 text-yellow-300 rounded-md border border-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
                         />
+                        {/* YENİ: Anlık Geri Bildirim */}
+                        <div className={`flex items-center text-sm font-semibold p-2 rounded-md ${validRecipeLength > 0 ? 'bg-green-800/50 text-green-300' : 'bg-red-800/50 text-red-300'}`}>
+                             <CheckCircle className="w-4 h-4 mr-2" />
+                             Yüklenen Geçerli Parça Sayısı: {validRecipeLength}
+                        </div>
                     </div>
 
                     <h2 
@@ -720,9 +761,9 @@ const App = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleStart}
-                            disabled={isRunning}
+                            disabled={isRunning || validRecipeLength === 0}
                             className={`flex-1 w-full py-4 rounded-lg font-extrabold text-lg transition-all duration-300 flex items-center justify-center space-x-2 
-                                ${isRunning ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-green-600 text-white shadow-lg shadow-green-900/50 hover:bg-green-700 hover:scale-[1.02]'}`}
+                                ${isRunning || validRecipeLength === 0 ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-green-600 text-white shadow-lg shadow-green-900/50 hover:bg-green-700 hover:scale-[1.02]'}`}
                         >
                             <Play className="w-6 h-6" />
                             <span>START</span>
@@ -766,8 +807,9 @@ const App = () => {
                             style={{ display: 'block', width: '100%', height: 'auto', backgroundColor: '#1F2937' }} 
                         />
                     </div>
-                    <p className="text-xs text-gray-400 mt-3 text-center">
-                        <span className="text-indigo-400 font-bold">Not:</span> Canvas artık bulunduğu konteynerin genişliğine göre **otomatik olarak ölçeklenir** ve en boy oranını (2:1) korur.
+                    {/* Genel Mesaj Alanı */}
+                     <p className={`p-3 text-center rounded-lg font-semibold ${message.startsWith('🚨 HATA') || message.startsWith('🔴') ? 'bg-red-700/50 text-red-300 border border-red-500' : 'bg-indigo-900/50 text-indigo-300'}`}>
+                        {message}
                     </p>
                 </div>
 
@@ -777,4 +819,3 @@ const App = () => {
 };
 
 export default App;
-
