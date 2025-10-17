@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opsiyonel: global body ayarları */
+body {
+  @apply bg-gray-900 text-gray-100 font-sans;
+}
