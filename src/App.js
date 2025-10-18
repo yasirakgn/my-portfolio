@@ -1,821 +1,524 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle } from 'lucide-react';
-
-// --- SIMULASYON SABITLERI ---
-const INPUT_CONVEYOR_Y = 300; 
-const MAIN_OUTPUT_CONVEYOR_Y = 150; 
-const BRANCH_OFFSET = 60; 
-
-const ROBOT_BASE_X = 150;
-const ROBOT_BASE_Y = 250;
-
-const INPUT_CONVEYOR_START_X = ROBOT_BASE_X + 50; 
-const INPUT_PICKUP_X = 250; 
-const OUTPUT_DROP_X = 350; 
-
-const DIVERTER_X = 550; 
-const CONVEYOR_SPEED = 2;
-
-const BRANCH_A_Y = MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET; 
-const BRANCH_B_Y = MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET; 
-
-const SENSOR_X = 750;
-const BIN_X = SENSOR_X + 150;
-
-const PART_WIDTH = 30;
-const PART_HEIGHT = 30;
-const BIN_WIDTH = 50;
-
-// Orijinal mantıksal boyutlar
-const ORIGINAL_WIDTH = 800; 
-const ORIGINAL_HEIGHT = 400; 
-
-// Yeni Renk ve Tip Haritası: TYPE_A üst kola (Mavi Kutu), TYPE_B alt kola (Kırmızı Kutu) gider
-const COLOR_MAP = {
-    "MAVI": { color: "#2563EB", type: "TYPE_A", name: "Mavi" }, 
-    "KIRMIZI": { color: "#DC2626", type: "TYPE_B", name: "Kırmızı" },
-    "YESIL": { color: "#10B981", type: "TYPE_A", name: "Yeşil" },
-    "SARI": { color: "#F59E0B", type: "TYPE_B", name: "Sarı" },
-    "MOR": { color: "#9333EA", type: "TYPE_A", name: "Mor" },
-};
-
-// Varsayılan Üretim Planı
-const DEFAULT_PART_QUEUE_TEXT = "Mavi, Kırmızı, Yeşil, Mavi, Sarı, Kırmızı, Mor";
-
-
-// Utility Functions
-const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-
-// Component
-const App = () => {
-    const canvasRef = useRef(null);
-    const animationRef = useRef(null);
-    const containerRef = useRef(null); 
-    const scaleFactorRef = useRef(1); 
-
-    // Simulation State
-    const [isRunning, setIsRunning] = useState(false);
-    const [step, setStep] = useState(0);
-    const [cycleCount, setCycleCount] = useState(0);
-    const [finishedCount, setFinishedCount] = useState(0);
-    const [message, setMessage] = useState("Üretim planını düzenleyin ve başlamak için START'a basın.");
-    
-    // Kullanıcı tarafından düzenlenebilir üretim planı (Metin)
-    const [partQueueText, setPartQueueText] = useState(DEFAULT_PART_QUEUE_TEXT);
-
-    // Simulation Refs
-    const robotPosRef = useRef({ x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
-    const targetRef = useRef({ x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
-    const robotPartRef = useRef(null); 
-    const outputPartsRef = useRef([]); 
-    const inputPartRef = useRef(null); 
-    const partRecipeRef = useRef([]); 
-    const [validRecipeLength, setValidRecipeLength] = useState(0); // YENİ: Geçerli parça sayısı
-
-    // Parça Listesini Başlatma (Metinden okuyor ve ayrıştırıyor)
-    const initializeParts = useCallback(() => {
-        // Metni büyük harfe çevir, virgülle ayır, boşlukları temizle ve boş girdileri filtrele
-        const partsText = partQueueText.toUpperCase().split(',').map(s => s.trim()).filter(s => s.length > 0);
-        const fullRecipe = [];
-        const invalidParts = [];
-
-        for (const partName of partsText) {
-            const partInfo = COLOR_MAP[partName];
-            if (partInfo) {
-                fullRecipe.push({
-                    color: partInfo.color,
-                    type: partInfo.type, 
-                    name: partInfo.name, 
-                });
-            } else {
-                invalidParts.push(partName);
-            }
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kompleks Otomasyon Kontrol Merkezi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
         }
-
-        partRecipeRef.current = fullRecipe;
-        setValidRecipeLength(fullRecipe.length); // Geçerli uzunluğu güncelle
-
-        if (invalidParts.length > 0) {
-            const availableNames = Object.keys(COLOR_MAP).map(k => COLOR_MAP[k].name).join(', ');
-            setMessage(`🚨 Üretim planında GEÇERSİZ renkler bulundu: ${invalidParts.join(', ')}. Lütfen sadece: ${availableNames} kullanın.`);
-        } else if (fullRecipe.length > 0) {
-            setMessage(`Üretim planı yüklendi: ${fullRecipe.length} parça. Sistem hazır.`);
-        } else {
-            setMessage("Üretim planı boş veya sadece geçersiz renkler içeriyor. Lütfen bir plan girin.");
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #60A5FA;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
         }
-
-        robotPartRef.current = null;
-        outputPartsRef.current = [];
-        inputPartRef.current = null;
-    }, [partQueueText]); 
-
-    // JSON değiştiğinde veya başlangıçta üretim planını yükle
-    useEffect(() => {
-        // Kullanıcı arayüzüne ilk yüklemede geri bildirim vermek için
-        initializeParts();
-    }, [initializeParts]);
-
-    // Yeni Parça Üretme Mantığı
-    const spawnNewPart = useCallback(() => {
-        if (partRecipeRef.current.length > 0) {
-            const nextPart = partRecipeRef.current.shift();
-            inputPartRef.current = {
-                x: INPUT_CONVEYOR_START_X,
-                y: INPUT_CONVEYOR_Y - PART_HEIGHT,
-                width: PART_WIDTH,
-                height: PART_HEIGHT,
-                color: nextPart.color,
-                type: nextPart.type, 
-                name: nextPart.name, 
-                held: false,
-                id: Date.now() + Math.random(),
-                counted: false, 
-            };
-            setMessage(`Yeni parça (${nextPart.name}) giriş konveyöründe. Robot bekliyor.`);
-        }
-    }, []);
-
-    // Robot Hareket Mantığı
-    const moveRobotTo = useCallback((x, y) => {
-        targetRef.current = { x, y };
-    }, []);
-
-    // PLC Step Logic Definition
-    const plcStepsRef = useRef({
-        0: () => {
-            // SADECE parça yoksa ve kuyrukta parça varsa yeni parça üret
-            if (robotPartRef.current === null && inputPartRef.current === null && partRecipeRef.current.length > 0) {
-                spawnNewPart(); 
-            }
-            // Giriş parça toplama noktasına ulaştıysa (INPUT_PICKUP_X) robotu harekete geçir
-            if (inputPartRef.current && inputPartRef.current.x >= INPUT_PICKUP_X) {
-                setStep(10);
-            } 
-            // Kuyrukta parça yoksa ve konveyörde hareket eden parça kalmadıysa dur
-            else if (partRecipeRef.current.length === 0 && outputPartsRef.current.every(p => !p.isMoving && p.counted)) {
-                setMessage("Tüm parçalar işlendi. Yeni bir plan oluşturun veya SIFIRLA yapın.");
-                setIsRunning(false);
-            }
-        },
-        10: () => {
-            if (!inputPartRef.current) return setStep(0); 
-            moveRobotTo(inputPartRef.current.x + PART_WIDTH / 2, inputPartRef.current.y + PART_HEIGHT / 2);
-            if (distance(robotPosRef.current, targetRef.current) < 5) {
-                setStep(20);
-            }
-        },
-        20: () => {
-            if (inputPartRef.current) {
-                robotPartRef.current = { ...inputPartRef.current, held: true };
-                inputPartRef.current = null; 
-                setMessage(`Parça (${robotPartRef.current.name}) kavrandı. Ana Konveyöre ilerliyor.`);
-                setTimeout(() => setStep(30), 300);
-            }
-        },
-        30: () => {
-            moveRobotTo(OUTPUT_DROP_X, MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT / 2); 
-            if (distance(robotPosRef.current, targetRef.current) < 5) {
-                setStep(40);
-            }
-        },
-        40: () => {
-            if (robotPartRef.current) {
-                const isTypeA = robotPartRef.current.type === 'TYPE_A';
-                const targetConveyorId = isTypeA ? 'A' : 'B';
-                const targetY = isTypeA ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
-
-                outputPartsRef.current.push({
-                    ...robotPartRef.current,
-                    held: false,
-                    x: OUTPUT_DROP_X - PART_WIDTH / 2,
-                    y: MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT,
-                    isMoving: true,
-                    conveyorPhase: 'MAIN', 
-                    conveyorId: targetConveyorId,
-                    targetY: targetY,
-                    diverterProgress: 0,
-                    counted: false, 
-                });
-
-                robotPartRef.current = null;
-                setMessage(`Parça (${targetConveyorId} için) Ana Konveyör üzerine bırakıldı. Yönlendirme bekleniyor.`);
-                setTimeout(() => setStep(50), 500);
-            }
-        },
-        50: () => {
-            moveRobotTo(ROBOT_BASE_X, ROBOT_BASE_Y);
-            if (distance(robotPosRef.current, targetRef.current) < 5) {
-                setCycleCount(c => c + 1);
-                setStep(0); 
-                setMessage("Döngü tamamlandı. Yeni parça bekleniyor (Adım 0).");
-            }
-        },
-    });
-
-    // Main Simulation Loop and Canvas Logic
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        
-        const resizeCanvas = () => {
-            const container = containerRef.current;
-            if (container) {
-                const newWidth = container.clientWidth;
-                canvas.width = newWidth; 
-                const newHeight = newWidth * (ORIGINAL_HEIGHT / ORIGINAL_WIDTH); 
-                canvas.height = newHeight;
-                scaleFactorRef.current = newWidth / ORIGINAL_WIDTH;
-            }
-        };
-        
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-
-        // --- Çizim Fonksiyonları ---
-        const drawConveyors = () => {
-            // Background fill, ORIGINAL_WIDTH ve ORIGINAL_HEIGHT kullanılarak çizilir.
-            ctx.fillStyle = "#1F2937"; 
-            ctx.fillRect(0, 0, ORIGINAL_WIDTH, ORIGINAL_HEIGHT); 
-
-            const drawConveyorLine = (startX, y, endX, label) => {
-                ctx.fillStyle = "#374151"; 
-                ctx.fillRect(startX, y, endX - startX, 25); 
-                ctx.fillStyle = "#2D3748"; 
-                ctx.fillRect(startX, y, endX - startX, 20);
-                ctx.fillStyle = "#4B5563";
-                ctx.fillRect(startX, y + 2, endX - startX, 16);
-                
-                // Rulolar
-                ctx.fillStyle = "#9CA3AF"; 
-                const segmentLength = 40;
-                for (let i = startX; i < endX; i += segmentLength) {
-                    const rollerX = i + (animationRef.current.offset * 0.5) % segmentLength; 
-                    ctx.beginPath();
-                    ctx.arc(rollerX, y + 10, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = "#2D3748"; 
-                    ctx.beginPath();
-                    ctx.arc(rollerX - 1, y + 10 - 1, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                ctx.strokeStyle = "#111827";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(startX, y, endX - startX, 20);
-
-                if (label) {
-                    ctx.fillStyle = "#9CA3AF";
-                    ctx.textAlign = "left";
-                    ctx.font = "12px Inter";
-                    ctx.fillText(label, startX, y - 5);
-                }
-            };
-            
-            drawConveyorLine(0, INPUT_CONVEYOR_Y, INPUT_PICKUP_X + 50, "Giriş Konveyörü");
-            drawConveyorLine(OUTPUT_DROP_X - 50, MAIN_OUTPUT_CONVEYOR_Y, DIVERTER_X + 20, "Ana Konveyör");
-            drawConveyorLine(DIVERTER_X, BRANCH_A_Y, BIN_X + BIN_WIDTH, "Konveyör A (Mavi/Yeşil/Mor Hedefi)");
-            drawConveyorLine(DIVERTER_X, BRANCH_B_Y, BIN_X + BIN_WIDTH, "Konveyör B (Kırmızı/Sarı Hedefi)");
-
-            // Yönlendirici (Diverter) Çizimi
-            ctx.fillStyle = "#4B5563"; 
-            ctx.fillRect(DIVERTER_X - 12, MAIN_OUTPUT_CONVEYOR_Y - 55, 24, 75);
-            ctx.fillStyle = "#374151";
-            ctx.fillRect(DIVERTER_X - 10, MAIN_OUTPUT_CONVEYOR_Y - 50, 20, 70);
-            
-            ctx.save();
-            ctx.translate(DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y + 10); 
-
-            let angle = 0; 
-            const activePart = outputPartsRef.current.find(p => p.conveyorPhase === 'DIVERTER_MOVE');
-            if (activePart) {
-                const targetAngle = activePart.type === 'TYPE_A' ? -Math.PI / 6 : Math.PI / 6; 
-                angle = targetAngle * Math.min(activePart.diverterProgress * 2, 1); 
-            }
-
-            ctx.rotate(angle);
-            
-            ctx.fillStyle = "#C0C0C0";
-            ctx.fillRect(-5, -5, 60, 10); 
-
-            ctx.fillStyle = "#4B5563";
-            ctx.beginPath();
-            ctx.arc(60, 5, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
-            
-            ctx.fillStyle = "#E5E7EB";
-            ctx.textAlign = "center";
-            ctx.font = "12px Inter";
-            ctx.fillText("Yönlendirici (Diverter)", DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y - 65);
-
-
-            // Bitmiş Ürün Kutuları (Finished Goods Bins)
-            const drawBin = (x, y, color, label) => {
-                const binTopY = y + 20;
-                
-                ctx.fillStyle = "#1F2937"; 
-                ctx.fillRect(x, binTopY, BIN_WIDTH, 85);
-
-                ctx.fillStyle = color; 
-                ctx.fillRect(x + 2, binTopY + 2, BIN_WIDTH - 4, 81);
-                
-                ctx.fillStyle = "#9CA3AF";
-                ctx.fillRect(x - 2, binTopY - 2, BIN_WIDTH + 4, 4);
-
-                ctx.strokeStyle = "#FFF";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, binTopY, BIN_WIDTH, 85);
-                
-                ctx.fillStyle = "#FFF";
-                ctx.textAlign = "center";
-                ctx.font = "12px Inter Bold";
-                ctx.fillText(label, x + BIN_WIDTH / 2, y + 55);
-            };
-
-            drawBin(BIN_X, BRANCH_A_Y, COLOR_MAP.MAVI.color, "Kutu A (Mavi, Yeşil, Mor)");
-            drawBin(BIN_X, BRANCH_B_Y, COLOR_MAP.KIRMIZI.color, "Kutu B (Kırmızı, Sarı)");
-
-
-            // Sensörler
-            const drawSensor = (x, y, label) => {
-                ctx.fillStyle = "#10B981"; 
-                ctx.shadowColor = 'rgba(16, 185, 129, 0.9)';
-                ctx.shadowBlur = 8;
-                
-                ctx.fillStyle = "#374151";
-                ctx.fillRect(x - 5, y - 20, 20, 10);
-
-                ctx.fillStyle = "#10B981"; 
-                ctx.beginPath();
-                ctx.arc(x + 5, y - 15, 4, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.shadowBlur = 0;
-
-                ctx.fillStyle = "#E5E7EB";
-                ctx.textAlign = "center";
-                ctx.font = "10px Inter";
-                ctx.fillText(label, x + 5, y - 25);
-            };
-
-            drawSensor(SENSOR_X, BRANCH_A_Y, "Sensör A");
-            drawSensor(SENSOR_X, BRANCH_B_Y, "Sensör B");
-        };
-
-        const drawParts = () => {
-            const drawPart = (p) => {
-                ctx.fillStyle = p.color;
-                
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-                ctx.shadowBlur = 5;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
-
-                ctx.fillRect(p.x, p.y, p.width, p.height);
-                
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
-
-                ctx.strokeStyle = "#000";
-                ctx.strokeRect(p.x, p.y, p.width, p.height);
-            }
-
-            if (inputPartRef.current) {
-                drawPart(inputPartRef.current);
-            }
-
-            const rp = robotPartRef.current;
-            if (rp) {
-                rp.x = robotPosRef.current.x - rp.width / 2;
-                rp.y = robotPosRef.current.y - rp.height / 2 - 15;
-                drawPart(rp);
-            }
-
-            outputPartsRef.current.forEach(p => {
-                drawPart(p);
-            });
-        };
-
-        const drawRobot = () => {
-            const currentPos = robotPosRef.current;
-
-            const dx = currentPos.x - ROBOT_BASE_X;
-            const dy = currentPos.y - ROBOT_BASE_Y;
-            const dist = distance(currentPos, { x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
-
-            let elbowX, elbowY;
-            const midX = ROBOT_BASE_X + dx * 0.5;
-            const midY = ROBOT_BASE_Y + dy * 0.5;
-            const perpX = -dy / dist;
-            const perpY = dx / dist;
-            const offsetMagnitude = Math.min(dist / 3, 50) + 10;
-            elbowX = midX + perpX * offsetMagnitude;
-            elbowY = midY + perpY * offsetMagnitude;
-
-            // Robot Base
-            ctx.fillStyle = "#1F2937"; 
-            ctx.fillRect(ROBOT_BASE_X - 25, ROBOT_BASE_Y - 10, 50, 60);
-            ctx.fillRect(ROBOT_BASE_X - 35, ROBOT_BASE_Y + 50, 70, 10);
-            ctx.strokeStyle = "#6B7280";
-            ctx.strokeRect(ROBOT_BASE_X - 25, ROBOT_BASE_Y - 10, 50, 60);
-
-            // Kol Segmentleri
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 5;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-
-            ctx.strokeStyle = "#60A5FA"; 
-            ctx.lineWidth = 12;
-            ctx.lineCap = 'round';
-
-            ctx.beginPath();
-            ctx.moveTo(ROBOT_BASE_X, ROBOT_BASE_Y);
-            ctx.lineTo(elbowX, elbowY);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(elbowX, elbowY);
-            ctx.lineTo(currentPos.x, currentPos.y);
-            ctx.stroke();
-
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
-            // Eklemler
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.arc(ROBOT_BASE_X, ROBOT_BASE_Y, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#C0C0C0";
-            ctx.beginPath();
-            ctx.arc(elbowX, elbowY, 10, 0, Math.PI * 2);
-            ctx.fill();
-
-            // End Effector (Tutucu)
-            ctx.fillStyle = robotPartRef.current && robotPartRef.current.held ? "#EF4444" : "#10B981"; 
-            ctx.shadowColor = robotPartRef.current && robotPartRef.current.held ? 'rgba(239, 68, 68, 0.8)' : 'rgba(16, 185, 129, 0.8)';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.arc(currentPos.x, currentPos.y, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            
-            // Tutucu "Parmaklar"
-            ctx.strokeStyle = "#1F2937";
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.moveTo(currentPos.x + 12, currentPos.y);
-            ctx.lineTo(currentPos.x + 20, currentPos.y - 18);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(currentPos.x - 12, currentPos.y);
-            ctx.lineTo(currentPos.x - 20, currentPos.y - 18);
-            ctx.stroke();
-        };
-
-        // Konveyör ve Parça Hareketi Mantığı
-        const updateConveyorMovement = () => {
-            const nextOutputParts = [];
-
-            if (inputPartRef.current && inputPartRef.current.x < INPUT_PICKUP_X) {
-                inputPartRef.current.x += CONVEYOR_SPEED * 0.5;
-            }
-
-            outputPartsRef.current.forEach(p => {
-                if (!p.isMoving) {
-                    nextOutputParts.push(p);
-                    return;
-                }
-
-                if (p.conveyorPhase === 'MAIN') {
-                    p.x += CONVEYOR_SPEED;
-                    if (p.x >= DIVERTER_X - PART_WIDTH / 2) {
-                        p.conveyorPhase = 'DIVERTER_MOVE';
-                        p.startY = p.y;
-                        
-                        const isTypeA = p.type === 'TYPE_A';
-                        p.targetY = isTypeA ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT;
-                        p.conveyorId = isTypeA ? 'A' : 'B';
-
-                        p.diverterProgress = 0;
-                        setMessage(`Diverter aktif! Parça ${p.conveyorId} koluna yönlendiriliyor.`);
-                    }
-                }
-                else if (p.conveyorPhase === 'DIVERTER_MOVE') {
-                    p.diverterProgress += 0.05; 
-                    p.x += CONVEYOR_SPEED * 0.5; 
-                    p.y = p.startY + (p.targetY - p.startY) * Math.min(p.diverterProgress, 1);
-
-                    if (p.diverterProgress >= 1) {
-                        p.conveyorPhase = 'BRANCH';
-                        p.y = p.targetY; 
-                    }
-                }
-                else if (p.conveyorPhase === 'BRANCH') {
-                    p.x += CONVEYOR_SPEED;
-
-                    if (p.x >= SENSOR_X && !p.passedSensor) {
-                        p.passedSensor = true;
-                        setMessage(`✅ Sensör ${p.conveyorId} Parçayı (${p.name}) algıladı. Kutulama bekleniyor.`);
-                    }
-
-                    if (p.x >= BIN_X) {
-                        p.isMoving = false; 
-                        p.x = BIN_X + (BIN_WIDTH / 2) - (PART_WIDTH / 2); 
-                        
-                        p.y = p.type === 'TYPE_A' ? BRANCH_A_Y - PART_HEIGHT : BRANCH_B_Y - PART_HEIGHT; 
-                        
-                        if (!p.counted) {
-                            p.counted = true;
-                            setFinishedCount(c => c + 1);
-                            setMessage(`📦 Parça (${p.name}) Bitmiş Ürün Kutusu'na yerleştirildi.`);
-                        }
-                    }
-                }
-                nextOutputParts.push(p);
-            });
-            outputPartsRef.current = nextOutputParts;
-        };
-
-
-        const animate = () => {
-            // Robot hareketini yumuşat
-            robotPosRef.current.x += (targetRef.current.x - robotPosRef.current.x) * 0.1;
-            robotPosRef.current.y += (targetRef.current.y - robotPosRef.current.y) * 0.1;
-
-            animationRef.current.offset = (animationRef.current.offset + CONVEYOR_SPEED) % 60;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
-            
-            const S = scaleFactorRef.current;
-            ctx.save(); 
-            ctx.scale(S, S); 
-
-            // Drawing logic (uses 800x400 coordinates)
-            drawConveyors();
-
-            if (isRunning) {
-                updateConveyorMovement(); 
-            }
-
-            drawParts();
-            drawRobot();
-
-            if (isRunning) {
-                const currentStepLogic = plcStepsRef.current[step];
-                if (currentStepLogic) {
-                    currentStepLogic();
-                }
-            }
-
-            ctx.restore(); 
-
-            animationRef.current.id = requestAnimationFrame(animate);
-        };
-        
-        animationRef.current = { id: null, offset: 0 };
-        animate();
-
-        return () => {
-            cancelAnimationFrame(animationRef.current.id);
-            window.removeEventListener('resize', resizeCanvas); 
-        };
-    }, [isRunning, step, spawnNewPart]);
-
-    // Controller Functions
-    const handleStart = () => {
-        // YENİ: Başlamadan hemen önce metin kutusundaki veriyi zorla işle
-        initializeParts(); 
-
-        // Kontrol 1: Üretim planı boş mu?
-        if (partRecipeRef.current.length === 0) {
-            setMessage("🔴 HATA: Üretim planı boş veya geçersiz parçalar içeriyor. Lütfen metin alanını kontrol edin ve geçerli renkler kullandığınızdan emin olun!");
-            return;
-        }
-
-        if (!isRunning) {
-            setIsRunning(true);
-            // İlk parçayı hemen üret
-            if (inputPartRef.current === null) spawnNewPart(); 
-            if (step !== 0) setStep(0);
-            setMessage("Simülasyon BAŞLADI. Robot Adım 0'da çalışıyor.");
-        }
-    };
-
-    const handleStop = () => {
-        setIsRunning(false);
-        setMessage("🔴 ACİL DURDURMA aktif. Robot durduruldu.");
-    };
-
-    const handleReset = () => {
-        handleStop();
-        setStep(0);
-        setCycleCount(0);
-        setFinishedCount(0);
-        
-        setPartQueueText(DEFAULT_PART_QUEUE_TEXT); 
-        // initializeParts, partQueueText değiştiği için otomatik olarak çağrılacak.
-        robotPosRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
-        targetRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
-        setMessage("Sistem SIFIRLANDI. Üretim planı yeniden yüklendi. Başlamak için START'a basın.");
-    };
-
-    // Custom Step Rendering
-    const StepDisplay = () => {
-        let description = "Beklemede (Hata?)";
-
-        if(step === 0) description = "Başlangıç: Parça üretimi veya bekleme.";
-        else if(step === 10) description = "Kavrama noktasına hareket.";
-        else if(step === 20) description = "Parçayı kavra (Gripper Kapat).";
-        else if(step === 30) description = "Ana Konveyör bırakma noktasına hareket.";
-        else if(step === 40) description = "Parçayı bırak ve Ana Konveyöre gönder.";
-        else if(step === 50) description = "Ana pozisyona geri dön.";
-
-        return (
-            <div
-                className="font-mono text-lg text-cyan-300 p-2 bg-gray-800 rounded-md shadow-inner shadow-cyan-900/50 transition-all duration-500 w-full"
-            >
-                <span className="text-gray-400 mr-2">Adım {step}:</span>
-                <span>{description}</span>
-            </div>
-        );
-    };
-
-    // İstatistik Kartı Bileşeni
-    const StatCard = ({ title, value, colorClass, Icon, iconColor }) => (
-        <div className="p-4 bg-gray-700 rounded-xl shadow-xl border-l-4 border-gray-600 transition-all duration-300 hover:scale-[1.02] transform">
-            <div className="flex justify-between items-center">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</p>
-                <Icon className={`w-5 h-5 ${iconColor}`} />
-            </div>
-            <p className={`text-3xl font-extrabold mt-1 ${colorClass}`}>{value}</p>
-        </div>
-    );
-
-
-    return (
-        <div 
-            className="w-full min-h-screen bg-gray-900 p-4 sm:p-8 font-sans text-gray-100"
-        >
-            {/* Başlık */}
-            <header className="text-center p-4 bg-gray-800 shadow-2xl rounded-xl mb-6 border-b-4 border-indigo-600">
-                <h1 
-                    className="text-4xl sm:text-5xl font-extrabold text-indigo-400 flex items-center justify-center mb-1"
-                >
-                    <Zap className="w-12 h-12 mr-3 text-cyan-400" />
-                    OTOMASYON KONTROL MERKEZİ
-                </h1>
-                <p 
-                    className="text-md sm:text-lg text-gray-400 mt-2 font-light"
-                >
-                    Robotik Ayırma ve Yönlendirme Hattı Simülasyonu
-                </p>
-            </header>
-
-            <div 
-                className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6"
-            >
-                {/* Sol Panel: Kontrol ve Veri Alanı */}
-                <div 
-                    className="flex-1 lg:flex-shrink-0 lg:w-1/3 bg-gray-800 p-5 rounded-xl shadow-2xl border border-gray-700 space-y-5 flex flex-col"
-                >
-                    <h2 
-                        className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 flex items-center" 
-                    >
-                        <Gauge className="w-6 h-6 mr-2 text-indigo-400" /> CANLI PERFORMANS VERİSİ
-                    </h2>
-
-                    {/* İstatistik Kartları */}
-                    <div className="grid grid-cols-2 gap-4 mb-2">
-                        <StatCard 
-                            title="Toplam Döngü" 
-                            value={cycleCount} 
-                            colorClass="text-white" 
-                            Icon={RotateCcw} 
-                            iconColor="text-indigo-400"
-                        />
-                        <StatCard 
-                            title="Bitmiş Ürün" 
-                            value={finishedCount} 
-                            colorClass="text-green-400" 
-                            Icon={Boxes} 
-                            iconColor="text-green-400"
-                        />
-                         <div className="col-span-2">
-                            <StatCard 
-                                title="Kalan Parça Kuyruğu" 
-                                value={partRecipeRef.current.length} 
-                                colorClass="text-yellow-400" 
-                                Icon={User} 
-                                iconColor="text-yellow-400"
-                            />
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-8xl h-screen flex flex-col p-4 sm:p-6 gap-6">
+        <header class="text-center bg-gray-800/50 backdrop-blur-sm shadow-2xl rounded-xl p-4 border-b-2 border-indigo-600">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-400 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3 text-cyan-400 animate-pulse"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                KOMPLEKS OTOMASYON KONTROL MERKEZİ
+            </h1>
+        </header>
+
+        <div class="flex-grow flex flex-col lg:flex-row gap-6 min-h-0">
+            <!-- Sol Panel -->
+            <div class="w-full lg:w-[400px] flex-shrink-0 bg-gray-800/50 backdrop-blur-sm p-5 rounded-xl shadow-2xl border border-gray-700 flex flex-col gap-4 overflow-y-auto">
+                <div>
+                    <h2 class="text-lg font-bold text-indigo-300 pb-2 mb-3 border-b border-gray-700 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> 
+                            SİSTEM KONTROLÜ
                         </div>
-                    </div>
-                    
-                    {/* Robot PLC Adımı */}
-                    <h2 
-                        className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 flex items-center" 
-                    >
-                        <Zap className="w-6 h-6 mr-2 text-indigo-400" /> Robot PLC Adımı
-                    </h2>
-                    <StepDisplay />
-
-                    {/* YENİ BÖLÜM: Üretim Planı */}
-                    <h2 className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 mt-4 flex items-center">
-                        <Boxes className="w-6 h-6 mr-2 text-indigo-400" /> ÜRETİM PLANI (Metin Listesi)
-                    </h2>
-                    <div className="space-y-2">
-                        <p className="text-xs text-gray-400 italic">
-                            Virgülle ayrılmış parça sırasını girin. **Renk isimlerinin doğru yazıldığından emin olun.**
-                        </p>
-                        <textarea
-                            value={partQueueText}
-                            onChange={(e) => {
-                                setPartQueueText(e.target.value);
-                                // Kullanıcı yazarken anlık olarak önizleme yapmak için (Simülasyon durmuşsa)
-                                if (!isRunning) initializeParts(); 
-                            }}
-                            rows="4"
-                            placeholder="Örn: Mavi, Kırmızı, Sarı, Yeşil, Mor"
-                            className="w-full font-mono text-sm p-2 bg-gray-900 text-yellow-300 rounded-md border border-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                        {/* YENİ: Anlık Geri Bildirim */}
-                        <div className={`flex items-center text-sm font-semibold p-2 rounded-md ${validRecipeLength > 0 ? 'bg-green-800/50 text-green-300' : 'bg-red-800/50 text-red-300'}`}>
-                             <CheckCircle className="w-4 h-4 mr-2" />
-                             Yüklenen Geçerli Parça Sayısı: {validRecipeLength}
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono">DURUM:</span>
+                            <div id="statusLight" class="w-4 h-4 rounded-full bg-yellow-500 shadow-[0_0_10px_yellow]"></div>
                         </div>
-                    </div>
-
-                    <h2 
-                        className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700 mt-4 flex items-center" 
-                    >
-                        <Zap className="w-6 h-6 mr-2 text-indigo-400" /> Hat Kontrolleri
                     </h2>
-
-                    {/* Kontrol Butonları */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <button
-                            onClick={handleStart}
-                            disabled={isRunning || validRecipeLength === 0}
-                            className={`flex-1 w-full py-4 rounded-lg font-extrabold text-lg transition-all duration-300 flex items-center justify-center space-x-2 
-                                ${isRunning || validRecipeLength === 0 ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-green-600 text-white shadow-lg shadow-green-900/50 hover:bg-green-700 hover:scale-[1.02]'}`}
-                        >
-                            <Play className="w-6 h-6" />
-                            <span>START</span>
+                    <div class="flex gap-3">
+                        <button id="startButton" class="flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 bg-green-600 text-white shadow-lg shadow-green-900/50 hover:bg-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span>BAŞLAT</span>
                         </button>
-                        <button
-                            onClick={handleStop}
-                            disabled={!isRunning}
-                            className={`flex-1 w-full py-4 rounded-lg font-extrabold text-lg transition-all duration-300 flex items-center justify-center space-x-2 
-                                ${!isRunning ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-red-600 text-white shadow-lg shadow-red-900/50 hover:bg-red-700 hover:scale-[1.02]'}`}
-                        >
-                            <StopCircle className="w-6 h-6" />
-                            <span>DURDUR</span>
+                        <button id="stopButton" class="flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner" disabled>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg><span>DURDUR</span>
                         </button>
                     </div>
-
-                    <button
-                        onClick={handleReset}
-                        className="w-full mt-3 py-4 rounded-lg font-bold transition-all duration-300 bg-gray-600 text-gray-100 shadow-md hover:bg-gray-500 hover:scale-[1.01] flex items-center justify-center space-x-2 text-lg"
-                    >
-                        <RotateCcw className="w-5 h-5" />
-                        <span>SİSTEMİ SIFIRLA</span>
+                     <button id="resetButton" class="w-full mt-3 py-3 rounded-lg font-bold transition-all duration-300 bg-gray-600 text-gray-100 shadow-md hover:bg-gray-500 flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M21 21v-5h-5"></path></svg><span>SIFIRLA</span>
                     </button>
                 </div>
 
-                {/* Sağ Panel: Simülasyon Görüntüleme Alanı */}
-                <div 
-                    ref={containerRef} 
-                    className="flex-1 bg-gray-800 p-5 rounded-xl shadow-2xl border border-gray-700 space-y-4 flex flex-col"
-                >
-                    <h2 
-                        className="text-xl font-bold text-indigo-300 pb-2 border-b border-gray-700"
-                    >
-                        CANVAS SİMÜLASYON GÖRÜNTÜSÜ
+                <div>
+                    <h2 class="text-lg font-bold text-indigo-300 pb-2 mb-2 border-b border-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m12 12-2-2 2-2 2 2-2 2Z"></path><path d="M12 12v6"></path><path d="M12 6V3"></path><path d="M12 21v-3"></path><path d="M20.4 16.4-19 15"></path><path d="m5 9 1.4-1.4"></path><path d="m19 9-1.4-1.4"></path><path d="M5 15l1.4 1.4"></path><path d="M20.4 7.6 19 9"></path></svg> SİMÜLASYON HIZI
                     </h2>
-                    {/* Canvas'ı çevreleyen Box */}
-                    <div 
-                        className="w-full border-4 border-gray-700 shadow-inner rounded-lg overflow-hidden bg-gray-900"
-                    >
-                        <canvas 
-                            ref={canvasRef} 
-                            style={{ display: 'block', width: '100%', height: 'auto', backgroundColor: '#1F2937' }} 
-                        />
-                    </div>
-                    {/* Genel Mesaj Alanı */}
-                     <p className={`p-3 text-center rounded-lg font-semibold ${message.startsWith('🚨 HATA') || message.startsWith('🔴') ? 'bg-red-700/50 text-red-300 border border-red-500' : 'bg-indigo-900/50 text-indigo-300'}`}>
-                        {message}
-                    </p>
+                     <div class="flex items-center gap-4 px-2">
+                         <span class="text-sm text-gray-400">Yavaş</span>
+                         <input id="speedControl" type="range" min="0.5" max="3" value="1.5" step="0.1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                         <span class="text-sm text-gray-400">Hızlı</span>
+                     </div>
+                     <p class="text-center font-mono text-cyan-400 mt-1">Hız: <span id="speedValue">1.5</span>x</p>
                 </div>
 
+                 <div>
+                    <h2 class="text-lg font-bold text-indigo-300 pb-2 mb-3 border-b border-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg> VERİMLİLİK RAPORU
+                    </h2>
+                     <div class="grid grid-cols-2 gap-3">
+                         <div class="p-3 bg-gray-700/50 rounded-lg text-center"><p class="text-xs text-gray-400">VERİMLİLİK</p><p id="yieldRate" class="text-2xl font-bold text-cyan-400">-%</p></div>
+                         <div class="p-3 bg-gray-700/50 rounded-lg text-center"><p class="text-xs text-gray-400">TOPLAM ÜRÜN</p><p id="totalParts" class="text-2xl font-bold text-white">0</p></div>
+                         <div class="p-3 bg-gray-700/50 rounded-lg text-center"><p class="text-xs text-gray-400">SAĞLAM</p><p id="goodParts" class="text-2xl font-bold text-green-400">0</p></div>
+                         <div class="p-3 bg-gray-700/50 rounded-lg text-center"><p class="text-xs text-gray-400">HATALI</p><p id="defectiveParts" class="text-2xl font-bold text-red-400">0</p></div>
+                     </div>
+                 </div>
+
+                 <div>
+                    <h2 class="text-lg font-bold text-indigo-300 pb-2 mb-3 border-b border-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><rect x="1.7" y="5.7" width="20.6" height="12.6" rx="2"></rect><path d="m5.7 5.7-2 6.3"></path><path d="m18.3 5.7 2 6.3"></path><path d="M12 5.7v12.6"></path></svg> ÜRETİM PLANI
+                    </h2>
+                    <textarea id="partQueueText" rows="3" class="w-full font-mono text-sm p-2 bg-gray-900 text-yellow-300 rounded-md border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+            </div>
+
+            <!-- Sağ Panel -->
+            <div class="flex-grow bg-gray-800 p-4 rounded-xl shadow-2xl border border-gray-700 flex flex-col min-h-0">
+                <div id="container" class="w-full h-full border-2 border-gray-700 shadow-inner rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center relative">
+                    <canvas id="simulationCanvas" style="display: block;"></canvas>
+                    <p id="message" class="absolute bottom-4 left-4 right-4 p-3 text-center rounded-lg font-semibold bg-indigo-900/80 backdrop-blur-sm text-indigo-200 border border-indigo-500/50 shadow-lg">
+                        Üretim planını düzenleyin ve BAŞLAT'a basın.
+                    </p>
+                </div>
             </div>
         </div>
-    );
-};
+    </div>
 
-export default App;
+    <script>
+    // --- SABİTLER ---
+    const ORIGINAL_HEIGHT = 500, ORIGINAL_WIDTH = 900;
+    const PART_WIDTH = 30, PART_HEIGHT = 30, BIN_WIDTH = 50;
+    let conveyorSpeed = 1.5;
+
+    const ROBOT_BASE_X = 150, ROBOT_BASE_Y = 350;
+    const INPUT_CONVEYOR_Y = 450, MAIN_CONVEYOR_Y = 250, REJECT_CONVEYOR_Y = 150;
+    const BRANCH_A_Y = 100, BRANCH_B_Y = 400;
+
+    const INPUT_CONVEYOR_START_X = ROBOT_BASE_X + 50; 
+    const INPUT_PICKUP_X = 250, OUTPUT_DROP_X = 350;
+    const QC_SCAN_X = 450, LIFT_X = 600, SENSOR_X = 750, BIN_X = SENSOR_X + 100;
+    const SCRAP_BIN_X = QC_SCAN_X;
+    
+    const DEFECT_CHANCE = 0.15; // %15 Hata olasılığı
+
+    const COLOR_MAP = { "MAVI": { color: "#3B82F6", type: "TYPE_A", name: "Mavi" }, "KIRMIZI": { color: "#EF4444", type: "TYPE_B", name: "Kırmızı" }, "YESIL": { color: "#22C55E", type: "TYPE_A", name: "Yeşil" }, "SARI": { color: "#F59E0B", type: "TYPE_B", name: "Sarı" }, "MOR": { color: "#A855F7", type: "TYPE_A", name: "Mor" } };
+    const DEFAULT_PART_QUEUE_TEXT = "Mavi, Kırmızı, Yeşil, Mavi, Sarı, Kırmızı, Mor, Kırmızı, Yeşil, Mavi";
+
+    // --- DOM Elementleri ---
+    const canvas = document.getElementById('simulationCanvas'), ctx = canvas.getContext('2d');
+    const container = document.getElementById('container');
+    const startButton = document.getElementById('startButton'), stopButton = document.getElementById('stopButton'), resetButton = document.getElementById('resetButton');
+    const speedControl = document.getElementById('speedControl'), speedValue = document.getElementById('speedValue');
+    const partQueueTextElement = document.getElementById('partQueueText');
+    const yieldRateEl = document.getElementById('yieldRate'), totalPartsEl = document.getElementById('totalParts'), goodPartsEl = document.getElementById('goodParts'), defectivePartsEl = document.getElementById('defectiveParts');
+    const messageElement = document.getElementById('message'), statusLight = document.getElementById('statusLight');
+
+    // --- Simülasyon Değişkenleri ---
+    let isRunning = false, step = 0;
+    let scaleFactor = 1, animationOffset = 0;
+    let robotPos = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y }, targetPos = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
+    let robotPart = null, outputParts = [], inputPart = null, partRecipe = [];
+    let lift = { y: MAIN_CONVEYOR_Y, targetY: MAIN_CONVEYOR_Y, status: 'idle', part: null };
+    let particles = [], qcScanner = { pos: 0, dir: 1 };
+    let partStats = { total: 0, good: 0, defective: 0 };
+    
+    // --- Utility & Ses Motoru ---
+    const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        if (type === 'reject') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        } else if (type === 'scan') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        } else if (type === 'binned') {
+             osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+    
+    // --- UI Güncelleme ---
+    function updateUI() {
+        totalPartsEl.textContent = partStats.total;
+        goodPartsEl.textContent = partStats.good;
+        defectivePartsEl.textContent = partStats.defective;
+        yieldRateEl.textContent = partStats.total > 0 ? `${((partStats.good / partStats.total) * 100).toFixed(1)}%` : `-%`;
+        
+        startButton.disabled = isRunning;
+        stopButton.disabled = !isRunning;
+        startButton.className = `flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 ${isRunning ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-green-600 text-white shadow-lg shadow-green-900/50 hover:bg-green-500'}`;
+        stopButton.className = `flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 ${!isRunning ? 'bg-gray-600 text-gray-400 cursor-not-allowed shadow-inner' : 'bg-red-600 text-white shadow-lg shadow-red-900/50 hover:bg-red-500'}`;
+        
+        if (isRunning) { statusLight.className = 'w-4 h-4 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] animate-pulse'; }
+        else if (partStats.total > 0 && partRecipe.length === 0 && outputParts.length === 0 && !lift.part && !inputPart && !robotPart) { statusLight.className = 'w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]'; }
+        else if (!stopButton.disabled) { statusLight.className = 'w-4 h-4 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]'; }
+        else { statusLight.className = 'w-4 h-4 rounded-full bg-yellow-500 shadow-[0_0_10px_#f59e0b]'; }
+    }
+    function showMessage(msg, isError = false) {
+        messageElement.textContent = msg;
+        messageElement.className = `absolute bottom-4 left-4 right-4 p-3 text-center rounded-lg font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ${isError ? 'bg-red-800/80 text-red-200 border border-red-500/50' : 'bg-indigo-900/80 text-indigo-200 border border-indigo-500/50'}`;
+    }
+    
+    // --- Efekt ve Parçacık Yönetimi ---
+    function createParticle(x, y, color) {
+        for(let i=0; i<10; i++) {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 3,
+                vy: (Math.random() - 0.5) * 3 - 2,
+                life: 30,
+                color
+            });
+        }
+    }
+    
+    function updateAndDrawParticles() {
+        particles = particles.filter(p => p.life > 0);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.1; // Gravity
+            p.life--;
+            ctx.globalAlpha = p.life / 30;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    // --- Çizim Fonksiyonları ---
+    function drawScene() {
+        ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        for(let i=0; i<ORIGINAL_WIDTH; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,ORIGINAL_HEIGHT); ctx.stroke(); }
+        for(let i=0; i<ORIGINAL_HEIGHT; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(ORIGINAL_WIDTH,i); ctx.stroke(); }
+
+        const drawConveyorLine = (startX, y, endX) => {
+            ctx.fillStyle = "#4B5563";
+            ctx.fillRect(startX, y + 20, endX - startX, 5);
+            ctx.fillStyle = "#374151";
+            ctx.fillRect(startX, y, endX - startX, 20);
+            const segmentLength = 40;
+            for (let i = startX; i < endX; i += segmentLength) {
+                const rollerX = i + (animationOffset * 0.5) % segmentLength;
+                ctx.fillStyle = "#2D3748";
+                ctx.fillRect(rollerX, y, 2, 20);
+            }
+        };
+        drawConveyorLine(0, INPUT_CONVEYOR_Y, INPUT_PICKUP_X + 50);
+        drawConveyorLine(OUTPUT_DROP_X - 50, MAIN_CONVEYOR_Y, LIFT_X);
+        drawConveyorLine(QC_SCAN_X, REJECT_CONVEYOR_Y, QC_SCAN_X + 150);
+        drawConveyorLine(LIFT_X, BRANCH_A_Y, BIN_X + BIN_WIDTH);
+        drawConveyorLine(LIFT_X, BRANCH_B_Y, BIN_X + BIN_WIDTH);
+    }
+    function drawQCStation() {
+        const x = QC_SCAN_X - 20;
+        ctx.fillStyle = "#374151"; ctx.fillRect(x, MAIN_CONVEYOR_Y - 50, 40, 50);
+        ctx.fillStyle = "#111827"; ctx.fillRect(x+5, MAIN_CONVEYOR_Y - 45, 30, 30);
+        qcScanner.pos += qcScanner.dir * conveyorSpeed * 0.5;
+        if(qcScanner.pos > 30 || qcScanner.pos < 0) qcScanner.dir *= -1;
+        ctx.fillStyle = "#EF4444"; ctx.shadowColor = "#EF4444"; ctx.shadowBlur = 10;
+        ctx.fillRect(x+5, MAIN_CONVEYOR_Y - 45 + qcScanner.pos, 30, 2);
+        ctx.shadowBlur = 0;
+    }
+    function drawParts() {
+        const drawPart = (p) => {
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.fillStyle = p.color; ctx.fillRect(0,0,p.width,p.height);
+            if(p.isDefective) {
+                ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth=3;
+                ctx.beginPath(); ctx.moveTo(2,2); ctx.lineTo(p.width-2, p.height-2); ctx.stroke();
+                ctx.moveTo(p.width-2,2); ctx.lineTo(2, p.height-2); ctx.stroke();
+            }
+            ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fillRect(2,2,p.width-4, 4);
+            ctx.restore();
+        };
+        [inputPart, robotPart, lift.part, ...outputParts].forEach(p => { if(p) { if(p === robotPart) { p.x = robotPos.x - p.width/2; p.y = robotPos.y - p.height/2 - 15; } drawPart(p); } });
+    }
+    function drawRobot() {
+        const currentPos = robotPos;
+        ctx.fillStyle = "#2D3748";
+        ctx.beginPath();
+        ctx.arc(ROBOT_BASE_X, ROBOT_BASE_Y, 30, Math.PI, 0);
+        ctx.fill();
+        ctx.fillRect(ROBOT_BASE_X - 40, ROBOT_BASE_Y, 80, 20);
+
+        const armLength1 = 70, armLength2 = 60, totalArmLength = armLength1 + armLength2;
+        const dx = currentPos.x - ROBOT_BASE_X, dy = currentPos.y - ROBOT_BASE_Y;
+        const distToTarget = distance(currentPos, {x: ROBOT_BASE_X, y: ROBOT_BASE_Y});
+        let elbowX, elbowY, angle1 = 0, angle2 = 0;
+
+        if (distToTarget < 1) {
+             elbowX = ROBOT_BASE_X; elbowY = ROBOT_BASE_Y - armLength1;
+             angle1 = -Math.PI / 2; angle2 = Math.PI;
+        } else if (distToTarget >= totalArmLength) {
+            angle1 = Math.atan2(dy, dx);
+            elbowX = ROBOT_BASE_X + Math.cos(angle1) * armLength1;
+            elbowY = ROBOT_BASE_Y + Math.sin(angle1) * armLength1;
+        } else {
+            const cosAngle2 = (distToTarget**2 - armLength1**2 - armLength2**2) / (2 * armLength1 * armLength2);
+            angle2 = Math.acos(Math.max(-1, Math.min(1, cosAngle2)));
+            const baseAngle = Math.atan2(dy, dx);
+            const angleOffset = Math.acos((armLength1**2 + distToTarget**2 - armLength2**2) / (2 * armLength1 * distToTarget));
+            angle1 = baseAngle - angleOffset;
+            elbowX = ROBOT_BASE_X + Math.cos(angle1) * armLength1;
+            elbowY = ROBOT_BASE_Y + Math.sin(angle1) * armLength1;
+        }
+        const angle3 = angle1 + angle2;
+
+        const segmentWidth = 18, segmentColor = "#4A5568", jointColor = "#60A5FA";
+        const drawSegment = (x, y, angle, length) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            const grad = ctx.createLinearGradient(0, -segmentWidth/2, 0, segmentWidth/2);
+            grad.addColorStop(0, "#718096");
+            grad.addColorStop(0.5, segmentColor);
+            grad.addColorStop(1, "#2D3748");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.rect(0, -segmentWidth/2, length, segmentWidth);
+            ctx.fill();
+            ctx.strokeStyle = "#2D3748";
+            ctx.stroke();
+            ctx.restore();
+        };
+        drawSegment(ROBOT_BASE_X, ROBOT_BASE_Y, angle1, armLength1);
+        drawSegment(elbowX, elbowY, angle3, armLength2);
+
+        [ [ROBOT_BASE_X, ROBOT_BASE_Y, 15], [elbowX, elbowY, 12] ].forEach(([x,y,r]) => {
+            ctx.fillStyle = jointColor;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        });
+        
+        ctx.fillStyle = robotPart && robotPart.held ? "#F87171" : "#4ADE80";
+        ctx.beginPath(); ctx.arc(currentPos.x, currentPos.y, 15, 0, Math.PI * 2); ctx.fill();
+    }
+    function drawBins() {
+        [ [BIN_X, BRANCH_A_Y, "Kutu A"], [BIN_X, BRANCH_B_Y, "Kutu B"], [SCRAP_BIN_X, REJECT_CONVEYOR_Y, "Hurda"] ].forEach(([x, y, label]) => {
+            const binTopY = y + 20;
+            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath();
+            ctx.moveTo(x, binTopY); ctx.lineTo(x-10, y + 70); ctx.lineTo(x + BIN_WIDTH + 10, y + 70); ctx.lineTo(x+BIN_WIDTH, binTopY);
+            ctx.closePath(); ctx.fill();
+        });
+    }
+    
+    // HATA DÜZELTMESİ: EKLENDİ
+    function drawLift() {
+        // Dikey Raylar
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(LIFT_X - 15, 0, 5, ORIGINAL_HEIGHT);
+        ctx.fillRect(LIFT_X + 50, 0, 5, ORIGINAL_HEIGHT);
+        
+        // Piston/Platform
+        ctx.fillStyle = "#718096"; // Piston shaft color
+        ctx.fillRect(LIFT_X + 15, lift.y + PART_HEIGHT, 10, ORIGINAL_HEIGHT - lift.y);
+        ctx.fillStyle = "#A0AEC0"; // Piston head color
+        ctx.fillRect(LIFT_X + 13, lift.y, 14, 10);
+        
+        // Platform
+        ctx.fillStyle = "#60A5FA"; // Accent color for the platform
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(LIFT_X - 10, lift.y, 60, PART_HEIGHT + 5);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#A855F7"; // A vibrant border
+        ctx.lineWidth = 2;
+        ctx.strokeRect(LIFT_X - 10, lift.y, 60, PART_HEIGHT + 5);
+        ctx.lineWidth = 1; // Reset line width
+    }
+
+    function updateLift() {
+        if (lift.y !== lift.targetY) {
+            lift.status = 'moving';
+            const dy = lift.targetY - lift.y;
+            lift.y += Math.sign(dy) * Math.min(Math.abs(dy), conveyorSpeed * 1.5);
+        } else if (lift.status === 'moving') {
+            lift.status = lift.part ? 'pushing' : 'idle';
+            if(lift.part) {
+                lift.part.y = lift.y;
+                lift.part.isMoving = true;
+                lift.part.conveyorPhase = 'BRANCH';
+                outputParts.push(lift.part);
+                lift.part = null;
+                lift.targetY = MAIN_CONVEYOR_Y;
+            }
+        }
+        if (lift.part) lift.part.y = lift.y;
+    }
+
+
+    // --- Simülasyon Mantığı ---
+    function initializeParts() {
+        const text = partQueueTextElement.value;
+        partRecipe = text.toUpperCase().split(',').map(s => s.trim()).filter(s => COLOR_MAP[s]).map(s => ({...COLOR_MAP[s]}));
+        partStats = { total: 0, good: 0, defective: 0 };
+        robotPart = null; outputParts = []; inputPart = null; lift.part = null;
+        updateUI();
+    }
+
+    const spawnNewPart = () => {
+        if (partRecipe.length > 0) {
+            const nextPart = partRecipe.shift();
+            inputPart = {
+                x: INPUT_CONVEYOR_START_X, y: INPUT_CONVEYOR_Y,
+                width: PART_WIDTH, height: PART_HEIGHT, ...nextPart,
+                isDefective: Math.random() < DEFECT_CHANCE,
+                conveyorPhase: 'INPUT'
+            };
+            partStats.total++;
+        }
+    };
+    
+    function updateConveyorMovement() {
+        if (inputPart && inputPart.x < INPUT_PICKUP_X) inputPart.x += conveyorSpeed * 0.5;
+
+        outputParts = outputParts.filter(p => {
+            if (!p.isMoving) return true;
+            p.x += conveyorSpeed;
+            if (p.conveyorPhase === 'MAIN' && p.x >= QC_SCAN_X) {
+                p.isMoving = false;
+                p.conveyorPhase = 'QC_SCAN';
+                playSound('scan');
+                setTimeout(() => {
+                    if (p.isDefective) {
+                        p.conveyorPhase = 'REJECTING';
+                        partStats.defective++;
+                        playSound('reject');
+                    } else {
+                        p.isMoving = true;
+                        p.conveyorPhase = 'POST_QC';
+                        partStats.good++;
+                    }
+                }, 500 / conveyorSpeed);
+            } else if (p.conveyorPhase === 'REJECTING') {
+                p.y -= conveyorSpeed;
+                if(p.y < REJECT_CONVEYOR_Y) {
+                    p.y = REJECT_CONVEYOR_Y;
+                    p.isMoving = true;
+                    p.conveyorPhase = 'REJECT_CONVEYOR';
+                }
+            } else if (p.conveyorPhase === 'REJECT_CONVEYOR' && p.x >= SCRAP_BIN_X + BIN_WIDTH) {
+                return false; // Remove part
+            } else if (p.conveyorPhase === 'POST_QC' && p.x >= LIFT_X && lift.status === 'idle' && !lift.part) {
+                p.isMoving = false;
+                lift.part = p;
+                lift.targetY = p.type === 'TYPE_A' ? BRANCH_A_Y : BRANCH_B_Y;
+                return false;
+            } else if (p.conveyorPhase === 'BRANCH' && p.x >= BIN_X) {
+                p.isMoving = false;
+                if (!p.counted) { p.counted = true; playSound('binned'); createParticle(p.x, p.y, p.color); }
+            }
+            return true;
+        });
+    }
+
+    const plcSteps = {
+        0: () => {
+            if (!robotPart && !inputPart && partRecipe.length > 0) spawnNewPart();
+            if (inputPart && inputPart.x >= INPUT_PICKUP_X) step = 10;
+            else if (partRecipe.length === 0 && outputParts.length === 0 && !lift.part && !inputPart && !robotPart) {
+                showMessage("Üretim tamamlandı!"); isRunning = false;
+            }
+        },
+        10: () => { if (!inputPart) { step = 0; return; } targetPos = {x: inputPart.x + PART_WIDTH / 2, y: inputPart.y + PART_HEIGHT / 2}; if (distance(robotPos, targetPos) < 5) step = 20; },
+        20: () => { if (inputPart) { robotPart = { ...inputPart, held: true }; inputPart = null; setTimeout(() => step = 30, 200 / conveyorSpeed); } else { step = 0; } },
+        30: () => { targetPos = {x: OUTPUT_DROP_X, y: MAIN_CONVEYOR_Y + PART_HEIGHT/2}; if (distance(robotPos, targetPos) < 5) step = 40; },
+        40: () => { if (robotPart) { outputParts.push({ ...robotPart, held: false, x: OUTPUT_DROP_X - PART_WIDTH / 2, y: MAIN_CONVEYOR_Y, isMoving: true, conveyorPhase: 'MAIN' }); robotPart = null; setTimeout(() => step = 50, 300 / conveyorSpeed); } else { step = 0; } },
+        50: () => { targetPos = {x: ROBOT_BASE_X, y: ROBOT_BASE_Y}; if (distance(robotPos, targetPos) < 5) { step = 0; } }
+    };
+
+    // --- Ana Döngü & Olay Dinleyicileri ---
+    function animate() {
+        robotPos.x += (targetPos.x - robotPos.x) * 0.1;
+        robotPos.y += (targetPos.y - robotPos.y) * 0.1;
+        animationOffset = (animationOffset + conveyorSpeed) % 60;
+        
+        ctx.save();
+        ctx.scale(scaleFactor, scaleFactor);
+        
+        drawScene();
+        drawQCStation();
+        drawLift(); // HATA DÜZELTMESİ: ÇAĞRI EKLENDİ
+        if (isRunning) { 
+            updateConveyorMovement(); 
+            updateLift(); 
+        }
+        drawParts();
+        drawRobot();
+        drawBins();
+        updateAndDrawParticles();
+        
+        if (isRunning) plcSteps[step]();
+        
+        ctx.restore();
+        updateUI();
+
+        requestAnimationFrame(animate);
+    }
+    
+    function resizeCanvas() {
+        const canvasWrapper = canvas.parentElement;
+        const scale = Math.min(canvasWrapper.clientWidth / ORIGINAL_WIDTH, canvasWrapper.clientHeight / ORIGINAL_HEIGHT);
+        canvas.width = ORIGINAL_WIDTH * scale;
+        canvas.height = ORIGINAL_HEIGHT * scale;
+        scaleFactor = scale;
+    }
+
+    startButton.addEventListener('click', () => {
+        if (partRecipe.length === 0) initializeParts();
+        if (partRecipe.length === 0) { showMessage("🔴 Geçerli bir üretim planı girin!", true); return; }
+        if (!isRunning) { isRunning = true; showMessage("Simülasyon BAŞLADI."); }
+    });
+    stopButton.addEventListener('click', () => { if (isRunning) { isRunning = false; showMessage("🔴 Simülasyon DURDURULDU.", true); } });
+    resetButton.addEventListener('click', () => {
+        isRunning = false; step = 0;
+        partQueueTextElement.value = DEFAULT_PART_QUEUE_TEXT;
+        initializeParts();
+        robotPos = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
+        targetPos = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
+        lift = { y: MAIN_CONVEYOR_Y, targetY: MAIN_CONVEYOR_Y, status: 'idle', part: null };
+        showMessage("Sistem SIFIRLANDI.");
+    });
+    speedControl.addEventListener('input', (e) => { conveyorSpeed = parseFloat(e.target.value); speedValue.textContent = conveyorSpeed.toFixed(1); });
+    partQueueTextElement.addEventListener('input', () => { if(!isRunning) initializeParts(); });
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Başlangıç ---
+    partQueueTextElement.value = DEFAULT_PART_QUEUE_TEXT;
+    initializeParts();
+    resizeCanvas();
+    animate();
+
+    </script>
+</body>
+</html>
+
