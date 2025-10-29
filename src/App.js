@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail } from 'lucide-react';
+import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail, Send, CheckCircle } from 'lucide-react';
 
 /* -------------------------------------------------------
    NAVBAR
@@ -486,69 +486,114 @@ function SimulationPage() {
 /* -------------------------------------------------------
    İLETİŞİM SAYFASI: /api/contact’a POST
 ------------------------------------------------------- */
-function ContactPage() {
+function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState("");
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const onChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setStatus("⏳ Gönderiliyor...");
+    setStatus("Gönderiliyor...");
+
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
       if (res.ok) {
-        setStatus("✅ Mesaj gönderildi!");
+        setStatus("✅ Mesaj başarıyla gönderildi!");
         setForm({ name: "", email: "", message: "" });
       } else {
-        setStatus("❌ Hata: " + (await res.text()));
+        const text = await res.text();
+        setStatus("❌ Hata: " + text);
       }
     } catch (err) {
-      setStatus("❌ Bağlantı hatası: " + err.message);
+      setStatus("❌ Sunucu hatası: " + err.message);
     }
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-3xl">
-      <div className="bg-gray-800/50 rounded-xl shadow-2xl p-6 border border-gray-700">
-        <h2 className="text-3xl font-extrabold text-indigo-400 mb-6 text-center">İletişim</h2>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <input
-            name="name"
-            value={form.name}
-            onChange={onChange}
-            placeholder="Ad Soyad"
-            required
-            className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
-          />
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={onChange}
-            placeholder="E-posta"
-            required
-            className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
-          />
-          <textarea
-            name="message"
-            rows="5"
-            value={form.message}
-            onChange={onChange}
-            placeholder="Mesajınız"
-            required
-            className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
-          />
-          <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md">
-            Gönder
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-300 mt-4">{status}</p>
-      </div>
+    <div className="max-w-xl mx-auto bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+      <h2 className="text-2xl font-bold text-indigo-400 mb-4 flex items-center justify-center gap-2">
+        <Mail className="w-6 h-6 text-cyan-400" />
+        İletişim Formu
+      </h2>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <input
+          type="text"
+          name="name"
+          placeholder="Adınız"
+          value={form.name}
+          onChange={onChange}
+          required
+          className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="E-posta (opsiyonel)"
+          value={form.email}
+          onChange={onChange}
+          className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
+        />
+
+        <textarea
+          name="message"
+          placeholder="Mesajınız"
+          value={form.message}
+          onChange={onChange}
+          required
+          rows="5"
+          className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
+        />
+
+        <button
+          type="submit"
+          className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 transition rounded-lg font-bold text-lg text-white flex justify-center items-center gap-2"
+        >
+          <Send className="w-5 h-5" /> Gönder
+        </button>
+      </form>
+
+      {status && (
+        <p className="mt-4 text-center text-sm text-gray-300 bg-gray-700/50 p-2 rounded-md">
+          {status}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------
+// ANA UYGULAMA
+// ---------------------------
+export default function App() {
+  const [page, setPage] = useState("contact");
+
+  return (
+    <div className="bg-gray-900 text-gray-100 min-h-screen p-6 font-sans">
+      <header className="text-center mb-8">
+        <h1 className="text-4xl font-extrabold text-indigo-400 mb-2">
+          Portföy İletişim Sayfası
+        </h1>
+        <p className="text-gray-400">
+          Brevo API entegrasyonu ile iletişim formu
+        </p>
+      </header>
+
+      {page === "contact" && <ContactForm />}
+
+      <footer className="mt-10 text-center text-gray-500 text-sm">
+        <CheckCircle className="inline w-4 h-4 text-green-400 mr-1" />
+        Powered by Brevo API & React
+      </footer>
     </div>
   );
 }
