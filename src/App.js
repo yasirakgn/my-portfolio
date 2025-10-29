@@ -27,7 +27,7 @@ function Navbar({ setPage, currentPage }) {
 }
 
 /* -------------------------------------------------------
-   SİMÜLASYON SAYFASI
+   SİMÜLASYON SAYFASII
 ------------------------------------------------------- */
 function SimulationPage() {
   // --- SABİTLER ---
