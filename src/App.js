@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-escape */
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail, Send } from 'lucide-react';
+import ReCAPTCHA from "react-google-recaptcha";
 
 /* -------------------------------------------------------
    NAVBAR
@@ -485,28 +486,34 @@ function SimulationPage() {
 }
 
 /* -------------------------------------------------------
-   İLETİŞİM SAYFASI (Brevo /api/contact’a POST)
+   İLETİŞİM SAYFASI
 ------------------------------------------------------- */
 function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setStatus("❌ Lütfen 'Ben robot değilim' kutusunu işaretle.");
+      return;
+    }
     setStatus("Gönderiliyor...");
 
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, captcha: captchaToken }),
       });
 
       if (res.ok) {
         setStatus("✅ Mesaj başarıyla gönderildi!");
         setForm({ name: "", email: "", message: "" });
+        setCaptchaToken("");
       } else {
         const text = await res.text();
         setStatus("❌ Hata: " + text);
@@ -553,6 +560,13 @@ function ContactForm() {
           className="w-full p-3 rounded-md bg-gray-900 text-gray-100 border border-gray-700"
         />
 
+        {/* reCAPTCHA kutusu */}
+        <ReCAPTCHA
+          sitekey="6LdDH_wrAAAAABAbvM9iuw-xOURppfLyNaSIjBsy"  // BURAYI DEĞİŞTİR
+          onChange={(token) => setCaptchaToken(token)}
+          theme="dark"
+        />
+
         <button
           type="submit"
           className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 transition rounded-lg font-bold text-lg text-white flex justify-center items-center gap-2"
@@ -582,7 +596,7 @@ function ContactPage() {
 }
 
 /* -------------------------------------------------------
-   ANA APP (tek default export)
+   ANA APP
 ------------------------------------------------------- */
 export default function App() {
   const [page, setPage] = useState('home'); // 'home' | 'contact'
