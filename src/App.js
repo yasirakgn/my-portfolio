@@ -1,7 +1,8 @@
 /* eslint-disable no-useless-escape */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail, Send, CheckCircle } from 'lucide-react';
+import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail, Send } from 'lucide-react';
+
 
 /* -------------------------------------------------------
    NAVBAR
