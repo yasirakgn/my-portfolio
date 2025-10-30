@@ -1,8 +1,6 @@
 /* eslint-disable no-useless-escape */
-
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Play, RotateCcw, StopCircle, Gauge, Boxes, Zap, User, CheckCircle, Home, Mail, Send } from 'lucide-react';
-
 
 /* -------------------------------------------------------
    NAVBAR
@@ -30,7 +28,7 @@ function Navbar({ setPage, currentPage }) {
 }
 
 /* -------------------------------------------------------
-   SİMÜLASYON SAYFASII
+   SİMÜLASYON SAYFASI
 ------------------------------------------------------- */
 function SimulationPage() {
   // --- SABİTLER ---
@@ -487,15 +485,13 @@ function SimulationPage() {
 }
 
 /* -------------------------------------------------------
-   İLETİŞİM SAYFASI: /api/contact’a POST
+   İLETİŞİM SAYFASI (Brevo /api/contact’a POST)
 ------------------------------------------------------- */
 function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState("");
 
-  const onChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -574,38 +570,22 @@ function ContactForm() {
   );
 }
 
-// ---------------------------
-// ANA UYGULAMA
-// ---------------------------
-export default function App() {
-  const [page, setPage] = useState("contact");
-
+function ContactPage() {
   return (
-    <div className="bg-gray-900 text-gray-100 min-h-screen p-6 font-sans">
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-extrabold text-indigo-400 mb-2">
-          Portföy İletişim Sayfası
-        </h1>
-        <p className="text-gray-400">
-          Brevo API entegrasyonu ile iletişim formu
-        </p>
-      </header>
-
-      {page === "contact" && <ContactForm />}
-
-      <footer className="mt-10 text-center text-gray-500 text-sm">
-        <CheckCircle className="inline w-4 h-4 text-green-400 mr-1" />
-        Powered by Brevo API & React
-      </footer>
+    <div className="container mx-auto p-6 max-w-4xl">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-2xl p-6 sm:p-8 border border-gray-700">
+        <h2 className="text-3xl font-extrabold text-indigo-400 mb-6 text-center">İletişim</h2>
+        <ContactForm />
+      </div>
     </div>
   );
 }
 
 /* -------------------------------------------------------
-   APP (sayfa yönlendirme)
+   ANA APP (tek default export)
 ------------------------------------------------------- */
 export default function App() {
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState('home'); // 'home' | 'contact'
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen p-4 sm:p-6 font-sans">
       <header className="text-center p-4 bg-gray-800 shadow-2xl rounded-xl mb-6 border-b-4 border-indigo-600">
@@ -613,9 +593,13 @@ export default function App() {
           <Zap className="w-12 h-12 mr-3 text-cyan-400 animate-pulse" />
           OTOMASYON KONTROL MERKEZİ
         </h1>
-        <p className="text-md sm:text-lg text-gray-400 mt-2 font-light">Robotik Ayırma ve Yönlendirme Simülasyonu</p>
+        <p className="text-md sm:text-lg text-gray-400 mt-2 font-light">
+          Robotik Ayırma ve Yönlendirme Simülasyonu
+        </p>
       </header>
+
       <Navbar setPage={setPage} currentPage={page} />
+
       <main>
         {page === 'home' && <SimulationPage />}
         {page === 'contact' && <ContactPage />}
