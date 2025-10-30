@@ -562,7 +562,7 @@ function ContactForm() {
 
         {/* reCAPTCHA kutusu */}
         <ReCAPTCHA
-          sitekey="6LdDH_wrAAAAABAbvM9iuw-xOURppfLyNaSIjBsy"  // BURAYI DEĞİŞTİR
+          sitekey="6LedKPwrAAAAAJFkwRxMOVBqRiSykae_Ux0LRJhZ"  // BURAYI DEĞİŞTİR
           onChange={(token) => setCaptchaToken(token)}
           theme="dark"
         />
