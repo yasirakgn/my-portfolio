@@ -1,0 +1,34 @@
+[33m224ce84[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m app.js düzeltildi
+[33m88829f3[m botid modülü ve client init kaldırıldı (build fix)
+[33m93e3d80[m BotID kaldırıldı, node-fetch eklendi, App.js çift export fix
+[33m30db544[m contact.js
+[33m29db4e1[m contact.js
+[33m082f6f4[m BotID kaldırıldı, sade kontakt fonksiyonu eklendi
+[33m7c2a868[m Yurtdışı uyumlu iletişim formu ve API eklendi
+[33med6480c[m Yurtdışı uyumlu iletişim formu ve API eklendi
+[33mc3459d7[m BotID rewrite eklendi
+[33mdfd1941[m BotID güvenlik entegrasyonu eklendi
+[33m19a1cb7[m v3.2
+[33ma7282d2[m v3.1
+[33m20756e5[m v3.0
+[33mb5db109[m Update App.js
+[33m2cbaef6[m reCAPTCHA paketi eklendi ve form düzenlendi
+[33maf3696c[m w2.0
+[33m78c1e7b[m fix: merge pages, single default export, contact page wired
+[33m6d78cdc[m fix: remove duplicate CheckCircle import
+[33m4a970c8[m chore: remove local .env from repo; ignore env files
+[33md607881[m Delete src/.env
+[33m4fc048f[m Update .env
+[33m45a8dca[m v1.1
+[33m4f60ad1[m v1.0
+[33m5da0fbe[m Added Brevo contact form integration
+[33m9a1b943[m contact form + api
+[33mc200114[m Delete env.local
+[33mee12722[m contact form + api
+[33meaae00a[m App.js düzenlendi ve proje çalışıyor
+[33m318dd60[m İlk versiyon
+[33m43041de[m Update README.md
+[33m548bda5[m Güncel kodu ekledim / React + Tailwind güncellemesi
+[33m9280d7b[m Update app name and short name in manifest.json
+[33m5411da6[m Update index.html
+[33ma453fab[m Initial commit
