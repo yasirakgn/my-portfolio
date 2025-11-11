@@ -1,6 +1,11 @@
 {
-  "name": "Y.A | Software & Automation  Engineer",
+  "name": "Yagser Akgun | Automation & Software Engineer",
   "short_name": "Yagser Akgun",
+  "description": "Personal portfolio of Yagser Akgun — showcasing projects in industrial automation, SCADA, PLC, HMI, and web development.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -11,10 +16,12 @@
       "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable any"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a"
+  ]
 }
