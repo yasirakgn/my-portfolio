@@ -3,7 +3,7 @@ import { Terminal, Bot, Sparkles, RotateCcw, AlertCircle } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
 // Buraya kendi API Key'inizi ekleyin veya process.env.REACT_APP_GEMINI_API_KEY kullanın
-const apiKey = process.env.REACT_API_GEMINI_API_KEY;
+const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
 
 export default function AiTerminal() {
   const [query, setQuery] = useState("");
