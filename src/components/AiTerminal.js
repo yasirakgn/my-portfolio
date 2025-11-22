@@ -86,7 +86,7 @@ export default function AiTerminal() {
           <Bot className="mr-3 w-8 h-8" /> YAGSER_AI TERMİNALİ
         </h2>
         <div className="flex items-center text-xs font-mono text-purple-300 bg-purple-900/30 px-3 py-1 rounded border border-purple-500/50 animate-pulse">
-          <Sparkles className="w-3 h-3 mr-2" /> POWERED BY GEMINI LLM
+          <Sparkles className="w-3 h-3 mr-2" /> POWERED BY AI YESSIEUR
         </div>
       </div>
 
