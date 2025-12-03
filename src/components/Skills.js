@@ -19,7 +19,7 @@ export default function Skills() {
 
           <div className="relative z-10">
             <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-6">
-               <Gauge size={24} />
+              <Gauge size={24} />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-6">Endüstriyel Otomasyon</h3>
 
@@ -57,12 +57,12 @@ export default function Skills() {
           </div>
 
           <div className="relative z-10">
-             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
-               <CodeIcon size={24} />
-             </div>
-             <h3 className="text-xl font-bold text-slate-800 mb-6">Yazılım Geliştirme</h3>
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+              <CodeIcon size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-6">Yazılım Geliştirme</h3>
 
-             <ul className="space-y-6">
+            <ul className="space-y-6">
               {[
                 { name: 'React.js & Modern Frontend', lvl: 85 },
                 { name: 'JavaScript (ES6+) / TypeScript', lvl: 80 },
