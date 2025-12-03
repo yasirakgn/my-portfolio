@@ -1,94 +1,104 @@
 import React from "react";
 import {
-  Play, Terminal, Activity, Cpu, Database, Bot, Sparkles
+  Play,
+  Bot,
+  Sparkles,
+  MapPin,
+  Activity,
+  Cpu
 } from "lucide-react";
 
 export default function DashboardHome({ setPage }) {
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
-      {/* Sol Taraf: Profil & Boot Log */}
-      <div className="lg:col-span-7 space-y-8">
-        <div className="bg-gray-800/50 border-l-4 border-cyan-500 p-8 rounded-r-xl shadow-lg backdrop-blur-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Terminal size={120} />
+    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 pt-10 items-center">
+      
+      {/* Sol Taraf: Profil */}
+      <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
+        <div className="space-y-4">
+          <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-600 text-xs font-bold tracking-wide shadow-sm">
+            OTOMASYON & YAZILIM MÜHENDİSİ
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-4 font-mono tracking-tighter">
-            <span className="text-cyan-400 animate-pulse">{`>>`}</span> YAGSER AKGÜN
+
+          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-800 tracking-tight leading-tight">
+            Merhaba, ben <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              Yağser Akgün.
+            </span>
           </h1>
-          <p className="text-xl text-gray-300 font-light tracking-wide mb-8 border-b border-gray-700 pb-4 inline-block">
-            Automation & Software Engineer
+
+          <p className="text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+            Endüstriyel otomasyonun gücünü modern web teknolojileriyle birleştiriyorum.
+            PLC programlama, SCADA sistemleri ve kullanıcı dostu arayüzler tasarlayarak
+            akıllı çözümler üretiyorum.
           </p>
+        </div>
 
-          {/* Fake Boot Sequence */}
-          <div className="font-mono text-xs md:text-sm text-green-400 bg-black/80 p-4 rounded border border-gray-700 mb-8 shadow-inner font-bold h-48 overflow-y-auto">
-            <p className="mb-1"><span className="text-gray-500">[SYSTEM]</span> Initializing YAGSER_OS kernel...</p>
-            <p className="mb-1"><span className="text-gray-500">[OK]</span> Loading PLC modules (S7-1200, S7-1500)</p>
-            <p className="mb-1"><span className="text-gray-500">[OK]</span> Mounting SCADA interface...</p>
-            <p className="mb-1"><span className="text-gray-500">[OK]</span> Connecting to React.js frontend...</p>
-            <p className="mb-1"><span className="text-gray-500">[OK]</span> Establishing database connection...</p>
-            <p className="mb-1"><span className="text-gray-500">[INFO]</span> User detected. Access granted.</p>
-            <p className="animate-pulse mt-2 text-cyan-300">{`> Ready for input_`}</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <button
+            onClick={() => setPage("simulation")}
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-3 transform hover:-translate-y-1"
+          >
+            <Play className="w-5 h-5 fill-current" />
+            Simülasyonu Başlat
+          </button>
+
+          <button
+            onClick={() => setPage("ai_tools")}
+            className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-lg shadow-slate-100 transition-all flex items-center justify-center gap-3 transform hover:-translate-y-1"
+          >
+            <Bot className="w-5 h-5 text-purple-500" />
+            AI Asistanı
+            <Sparkles className="w-4 h-4 text-yellow-400" />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center lg:justify-start gap-6 text-slate-500 text-sm font-medium pt-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-red-500" /> İstanbul, TR
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => setPage('simulation')}
-              className="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-4 px-6 rounded shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all flex items-center justify-center gap-2 group"
-            >
-              <Play className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-              SİMÜLASYONU BAŞLAT
-            </button>
-            <button
-              onClick={() => setPage('ai_tools')}
-              className="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-bold py-4 px-6 rounded shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all flex items-center justify-center gap-2 group border border-purple-500"
-            >
-              <Bot className="w-5 h-5" />
-              AI ASİSTANI'NI DENE
-              <Sparkles className="w-4 h-4 text-yellow-300 group-hover:animate-ping" />
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            Yeni Projelere Açık
           </div>
         </div>
       </div>
 
-      {/* Sağ Taraf: Sistem Durumu */}
-      <div className="lg:col-span-5 space-y-4">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="bg-gray-800 p-5 rounded-lg border-t-4 border-green-500 shadow-md flex items-center justify-between">
-            <div>
-              <div className="text-xs text-gray-400 font-mono mb-1">OPERASYON DURUMU</div>
-              <div className="text-2xl font-bold text-white flex items-center gap-2">
-                ONLINE <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-              </div>
+      {/* Sağ Taraf: Kartlar */}
+      <div className="lg:col-span-5 space-y-6">
+        
+        <div className="bg-white p-6 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 transform rotate-1 hover:rotate-0 transition-transform duration-300">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+              <Activity size={24} />
             </div>
-            <Activity className="text-green-500 opacity-50" size={32} />
-          </div>
-
-          <div className="bg-gray-800 p-5 rounded-lg border-t-4 border-blue-500 shadow-md flex items-center justify-between">
             <div>
-              <div className="text-xs text-gray-400 font-mono mb-1">ANA UZMANLIK</div>
-              <div className="text-xl font-bold text-white">PLC & WEB ENTEGRASYONU</div>
+              <h3 className="font-bold text-slate-800">Sistem Durumu</h3>
+              <p className="text-xs text-slate-500">Gerçek Zamanlı İzleme</p>
             </div>
-            <Cpu className="text-blue-500 opacity-50" size={32} />
           </div>
-
-          <div className="bg-gray-800 p-5 rounded-lg border-t-4 border-purple-500 shadow-md flex items-center justify-between">
-            <div>
-              <div className="text-xs text-gray-400 font-mono mb-1">AKTİF KONUM</div>
-              <div className="text-xl font-bold text-white">İSTANBUL / TÜRKİYE</div>
-            </div>
-            <Database className="text-purple-500 opacity-50" size={32} />
-          </div>
+          <p className="text-slate-600 text-sm">
+            Endüstriyel sahalardan alınan verileri anlık olarak işleyip görselleştiren sistemler.
+          </p>
         </div>
 
-        <div className="bg-gray-900 border border-gray-700 p-4 rounded text-xs font-mono text-gray-500">
-          <p>Sistem Versiyonu: v2.5.0 (AI Updated)</p>
-          <p>Son Güncelleme: 21.11.2025</p>
-          <p>Uptime: 99.9%</p>
-          <div className="w-full bg-gray-800 h-1 mt-2 rounded-full overflow-hidden">
-            <div className="bg-gray-600 h-full w-[85%] animate-pulse"></div>
+        <div className="bg-white p-6 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Cpu size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800">Ana Uzmanlık</h3>
+              <p className="text-xs text-slate-500">PLC & Web Entegrasyonu</p>
+            </div>
           </div>
+          <p className="text-slate-600 text-sm">
+            Siemens S7 serisi PLC'ler ile React tabanlı modern web arayüzlerini birbirine bağlıyorum.
+          </p>
         </div>
+
       </div>
+
     </div>
   );
 }
