@@ -1,13 +1,9 @@
-<<<<<<< HEAD
 /** @type {import('tailwindcss').Config} */
-=======
->>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-<<<<<<< HEAD
     extend: {
       colors: {
         slate: {
@@ -20,6 +16,12 @@ module.exports = {
           dark: '#18181b', // Zinc-950 (Main BG)
           card: '#27272a', // Zinc-800 (Card BG)
           border: '#3f3f46', // Zinc-700 (Border)
+        },
+        // Glass Tokens
+        glass: {
+          surface: 'rgba(24, 24, 27, 0.6)',
+          border: 'rgba(255, 255, 255, 0.08)',
+          highlight: 'rgba(255, 255, 255, 0.05)',
         },
         // Pastel Accents
         pastel: {
@@ -67,9 +69,6 @@ module.exports = {
         }
       }
     },
-=======
-    extend: {},
->>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
   },
   plugins: [],
 }

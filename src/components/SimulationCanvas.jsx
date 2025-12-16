@@ -17,18 +17,36 @@ import {
 
 const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 
-export default function SimulationCanvas({ state, refs, actions }) {
+export default function SimulationCanvas({ state, refs, actions, isPreview = false }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const animationRef = useRef({ id: null, offset: 0 });
     const scaleFactorRef = useRef(1);
     const lastTimeRef = useRef(performance.now());
 
+    // --- FALLBACK FOR PREVIEW MODE ---
+    const internalRefs = useRef({
+        robotPosRef: { current: { x: 400, y: 300 } },
+        robotPartRef: { current: null },
+        outputPartsRef: { current: [] },
+        inputPartRef: { current: null },
+    });
+
+    const safeRefs = refs || internalRefs.current;
+
+    // Destructure safely
     const {
         robotPosRef, robotPartRef, outputPartsRef, inputPartRef
-    } = refs;
+    } = safeRefs;
 
-    const { isRunning, message } = state;
+    const safeState = state || { isRunning: true, message: "Demo Mode" };
+    const safeActions = actions || {
+        updateRobotAnimation: (dt) => { }, // No-op in demo for now, or add simple wobble
+        updateConveyorMovement: (dt) => { },
+        runPLCStep: () => { }
+    };
+
+    const { isRunning, message } = safeState;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -173,7 +191,7 @@ export default function SimulationCanvas({ state, refs, actions }) {
             lastTimeRef.current = now;
 
             // Using dt for physics
-            actions.updateRobotAnimation(dt);
+            safeActions.updateRobotAnimation(dt);
 
             const speed = 2; // Animation constant
             animationRef.current.offset = (animationRef.current.offset + speed) % 60; // Visuals only
@@ -185,8 +203,13 @@ export default function SimulationCanvas({ state, refs, actions }) {
             drawConveyors();
 
             if (isRunning) {
-                actions.updateConveyorMovement(dt);
-                actions.runPLCStep(); // FSM still tick-based, fine
+                if (isPreview && !actions) {
+                    // Simple Demo Animation: Move conveyors
+                    animationRef.current.offset = (animationRef.current.offset + speed) % 60;
+                } else {
+                    safeActions.updateConveyorMovement(dt);
+                    safeActions.runPLCStep();
+                }
             }
 
             drawParts();
@@ -205,7 +228,7 @@ export default function SimulationCanvas({ state, refs, actions }) {
             window.removeEventListener('resize', resizeCanvas);
             if (animationRef.current.id) cancelAnimationFrame(animationRef.current.id);
         };
-    }, [isRunning, actions, refs]);
+    }, [isRunning, safeActions, safeRefs, isPreview]);
     // Dependency array note: 'refs' are usually stable objects, but checking just in case. 
     // We want to avoid re-binding the loop too often, but we need isRunning for logic inside.
 
