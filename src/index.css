@@ -2,15 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-<<<<<<< HEAD
 @layer base {
   html {
-    font-size: 14px; /* Global density shift: 1rem = 14px now */
+    font-size: 14px;
+    /* Global density shift: 1rem = 14px now */
   }
 
   body {
     @apply bg-matte-dark text-slate-200 font-sans antialiased overflow-x-hidden;
-    line-height: 1.4; /* Tighter density */
+    line-height: 1.4;
+    /* Tighter density */
     /* Subtle, almost invisible grid for texture */
     background-image:
       linear-gradient(rgba(39, 39, 42, 0.4) 1px, transparent 1px),
@@ -79,34 +80,3 @@
     opacity: 0;
   }
 }
-=======
-body {
-  @apply bg-slate-50 text-slate-800 font-sans antialiased;
-}
-
-/* --- Global Scrollbar --- */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Soft Animations */
-.typing-cursor::after {
-  content: '|';
-  animation: blink 1s step-start infinite;
-  color: #6366f1;
-}
-
-@keyframes blink {
-  50% { opacity: 0; }
-}
->>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
