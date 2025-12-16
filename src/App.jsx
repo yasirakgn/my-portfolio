@@ -52,7 +52,7 @@ export default function App() {
       <div className="relative z-10 flex-grow flex flex-col">
         <Navbar />
 
-        <main className="flex-grow container mx-auto px-4 pb-12 pt-4">
+        <main className="flex-grow container mx-auto px-4 pb-12 pt-24">
           <Suspense fallback={<LoadingCallback />}>
             <AnimatePresence mode="wait">
               <Routes location={location} key={location.pathname}>

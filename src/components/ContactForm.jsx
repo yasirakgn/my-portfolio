@@ -103,11 +103,20 @@ export default function ContactForm() {
               ></textarea>
             </div>
 
-            <ReCAPTCHA
-              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-              onChange={(token) => setCaptchaToken(token)}
-              className="mt-4"
-            />
+            <div className="mt-6 flex justify-center md:justify-start">
+              {/* ReCAPTCHA Wrapper for Visibility & Spacing */}
+              {import.meta.env.VITE_RECAPTCHA_SITE_KEY ? (
+                <ReCAPTCHA
+                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                  onChange={(token) => setCaptchaToken(token)}
+                  theme="dark" // Matches the dark aesthetic
+                />
+              ) : (
+                <div className="p-4 border border-red-500 bg-red-900/20 text-red-400 text-xs rounded font-mono">
+                  ⚠ DEV ERROR: Missing VITE_RECAPTCHA_SITE_KEY
+                </div>
+              )}
+            </div>
 
             <button
               type="submit"

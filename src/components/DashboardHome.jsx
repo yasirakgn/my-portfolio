@@ -22,11 +22,11 @@ export default function DashboardHome() {
     <div className="max-w-screen-2xl mx-auto p-6">
 
       {/* Header / Intro */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">
-          Engineering Dashboard <span className="text-slate-500 text-lg font-normal ml-2">v3.1</span>
+      <div className="mb-10 mt-2">
+        <h1 className="text-3xl font-bold text-white tracking-tight leading-relaxed">
+          Engineering Dashboard <span className="text-slate-500 text-lg font-normal ml-2 align-middle">v3.1</span>
         </h1>
-        <p className="text-slate-400 text-sm">System Status: Nominal • Region: Global/Remote</p>
+        <p className="text-slate-400 text-sm mt-1">System Status: Nominal • Region: Global/Remote</p>
       </div>
 
       {/* BENTO GRID LAYOUT */}

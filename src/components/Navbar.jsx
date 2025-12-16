@@ -13,7 +13,7 @@ export default function Navbar() {
   ];
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center w-full bg-matte-dark/95 border-b border-matte-border/50 shadow-sm backdrop-blur-sm">
+    <div className="fixed top-0 left-0 right-0 z-[999] flex justify-center w-full bg-matte-dark/95 border-b border-matte-border/50 shadow-sm backdrop-blur-sm">
       <nav className="max-w-7xl w-full px-4 h-16 flex items-center justify-between">
 
         {/* Logo Area */}
