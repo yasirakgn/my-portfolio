@@ -1,0 +1,99 @@
+[
+    {
+        "id": "scada-water-treatment",
+        "title": "SCADA Su Arıtma Tesisi Modernizasyonu",
+        "category": "Process Automation",
+        "type": "PLC + SCADA",
+        "techStack": [
+            "Siemens S7-1200",
+            "WinCC Professional",
+            "Profinet",
+            "PID Control"
+        ],
+        "summary": "10.000m³/gün kapasiteli tesisin legacy sistemden modern TIA Portal mimarisine taşınması ve tam otomasyonu.",
+        "challenge": "7/24 kesintisiz çalışan tesiste, duruş (downtime) süresini sıfıra indirme gerekliliği.",
+        "solution": "Parallel running stratejisi ile eski ve yeni PLC'lerin senkron çalıştırılıp hot-swap geçiş yapılması.",
+        "impact": "Enerji tüketiminde %15 tasarruf, arıyza müdahale süresinde %40 azalma."
+    },
+    {
+        "id": "multi-axis-servo",
+        "title": "Multi-Axis Servo Motion Control",
+        "category": "Machine Automation",
+        "type": "Motion Control",
+        "techStack": [
+            "Beckhoff TwinCAT 3",
+            "EtherCAT",
+            "Structured Text (ST)",
+            "SafeMotion"
+        ],
+        "summary": "6 eksenli yüksek hızlı paketleme makinesinin senkronizasyonu ve elektronik CAM tablaları.",
+        "challenge": "Dakikada 200 paket üretim hızında milimetrik pozisyonlama hassasiyeti.",
+        "solution": "Distributed Clock senkronizasyonu (1ms cycle time) ve özel motion profilleri.",
+        "impact": "Üretim kapasitesinde %25 artış, fire oranında %5 azalma."
+    },
+    {
+        "id": "iiot-predictive",
+        "title": "Industrial IoT & Predictive Maintenance",
+        "category": "Digital Transformation",
+        "type": "IIoT + Python",
+        "techStack": [
+            "Python",
+            "MQTT",
+            "Azure IoT Hub",
+            "React Dashboard",
+            "InfluxDB"
+        ],
+        "summary": "Fabrika genelindeki 50+ motor ve sürücünün verilerinin toplanarak kestirimci bakım analizi yapılması.",
+        "challenge": "Farklı protokollerdeki (Modbus, Profibus, Analog) eski cihazların tek bir ağda toplanması.",
+        "solution": "Edge Gateway cihazları ile verinin normalize edilip buluta güvenli (TLS 1.2) aktarımı.",
+        "impact": "Plansız duruşlarda %60 azalma, bakım maliyetlerinde yıllık 20k$ tasarruf."
+    },
+    {
+        "id": "vision-quality",
+        "title": "Machine Vision Kalite Kontrol Hücresi",
+        "category": "Quality Assurance",
+        "type": "Vision System",
+        "techStack": [
+            "Cognex In-Sight",
+            "Keyence",
+            "PLC Integration",
+            "Lighting Design"
+        ],
+        "summary": "Otomotiv parçalarının montaj hatalarının kamera sistemi ile %100 kontrol edildiği istasyon.",
+        "challenge": "Değişken ortam ışığında ve hareketli parçalarda yüksek doğruluklu algılama.",
+        "solution": "Özel aydınlatma tasarımı ve pattern matching algoritmalarının optimizasyonu.",
+        "impact": "Müşteri iadelerinde (PPM) sıfıra yakın seviye, operatör bağımlılığının kaldırılması."
+    },
+    {
+        "id": "safety-curtain",
+        "title": "Functional Safety & Robot Integration",
+        "category": "Safety Engineering",
+        "type": "Safety (SIL 3)",
+        "techStack": [
+            "Sick Safety PLC",
+            "Light Curtains",
+            "ISO 13849-1",
+            "Risk Assessment"
+        ],
+        "summary": "Robotik kaynak hücresinin CE normlarına ve makine emniyet yönetmeliğine uygun güvenli hale getirilmesi.",
+        "challenge": "Üretim hızını yavaşlatmadan operatör güvenliğinin maksimum seviyede sağlanması.",
+        "solution": "Zonlu güvenlik tasarımı (Zone Safety) ile duruş gerektirmeden yükleme yapılabilmesi.",
+        "impact": "İş kazası riskinin eliminasyonu, resmi güvenlik denetimlerinden tam not."
+    },
+    {
+        "id": "auto-warehouse",
+        "title": "AGV Depo Otomasyonu Algoritması",
+        "category": "Logistics",
+        "type": "Algorithm",
+        "techStack": [
+            "C# .NET",
+            "SQL Server",
+            "Path Finding (A*)",
+            "TCP/IP Socket"
+        ],
+        "summary": "Otomatik Yönlendirmeli Araçlar (AGV) için trafik yönetimi ve görev atama sunucusu.",
+        "challenge": "Dar koridorlarda çarpışma önleme (Collision Avoidance) ve deadlock yönetimi.",
+        "solution": "Merkezi sunucu tabanlı dinamik rota planlama ve öncelik yönetimi algoritması.",
+        "impact": "Lojistik operasyon süresinde %30 iyileşme."
+    }
+]

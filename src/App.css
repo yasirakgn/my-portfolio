@@ -1,0 +1,15 @@
+/* UYARI: Bu importlar `src/index.css` dosyasında zaten mevcut.
+  Gereksiz tekrarı ve olası stil çakışmalarını önlemek için buradan kaldırıldı.
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*/
+
+/* opsiyonel: font ekleme (Artık tailwind.config.js dosyasından yönetiliyor) */
+/*
+body {
+  font-family: 'Inter', sans-serif;
+}
+*/
+
