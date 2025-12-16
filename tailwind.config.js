@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 /** @type {import('tailwindcss').Config} */
+=======
+>>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
+<<<<<<< HEAD
     extend: {
       colors: {
         slate: {
@@ -63,6 +67,9 @@ module.exports = {
         }
       }
     },
+=======
+    extend: {},
+>>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
   },
   plugins: [],
 }

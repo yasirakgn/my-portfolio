@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # =========================
 # Dependencies
 # =========================
@@ -43,3 +44,31 @@ main
 # =========================
 # Tooling
 # ===========
+=======
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+".env*"    # yoksa ekle
+
+.vercel
+>>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
