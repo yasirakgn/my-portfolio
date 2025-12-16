@@ -7,18 +7,9 @@
   "license": "MIT",
   "description": "Personal portfolio website of Yagser Akgun — Automation & Software Engineer specializing in PLC, SCADA, HMI, and web development.",
   "scripts": {
-<<<<<<< HEAD
     "start": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
-=======
-    "start": "react-scripts start",
-    "build": "cross-env CI=false react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "preview": "npx serve -s build",
-    "deploy": "npm run build && vercel --prod"
->>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
   },
   "dependencies": {
     "framer-motion": "^12.23.24",
@@ -27,7 +18,6 @@
     "react-dom": "^19.2.0",
     "react-google-recaptcha": "^3.1.0",
     "react-markdown": "^10.1.0",
-<<<<<<< HEAD
     "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
@@ -46,16 +36,6 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vitest": "^4.0.15"
-=======
-    "react-router-dom": "^7.9.5",
-    "react-scripts": "5.0.1"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "cross-env": "^10.1.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18"
->>>>>>> 68ab7b9f7cfe0270b2405d29ba78b239cc263322
   },
   "eslintConfig": {
     "extends": [
