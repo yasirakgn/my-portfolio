@@ -2,9 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Terminal, Bot, Sparkles, RotateCcw, AlertCircle } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
-// Buraya kendi API Key'inizi ekleyin veya process.env.REACT_APP_GEMINI_API_KEY kullanın
-const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-
 export default function AiTerminal() {
     const [query, setQuery] = useState("");
     const [response, setResponse] = useState("");
@@ -24,43 +21,29 @@ export default function AiTerminal() {
         setError(null);
         setResponse("");
 
-        const systemInstruction = `
-      Sen YAGSER_AI adında, uzman bir Endüstriyel Otomasyon Mühendisisin. 
-      Uzmanlık alanların: PLC Programlama (Siemens SCL, Ladder), SCADA sistemleri, Endüstriyel IoT ve Web Geliştirme (React, Node.js).
-      
-      Görevin:
-      1. Kullanıcının teknik sorularına kısa, net ve profesyonel cevaplar vermek.
-      2. İstenildiğinde PLC kodu (SCL, Ladder mantığı) veya JavaScript kodu üretmek.
-      3. Cevaplarını markdown formatında ver. Kod bloklarını dil belirterek kullan.
-      4. Cevapların "mühendislik jargonu" ile profesyonel ama anlaşılır olsun.
-    `;
-
         try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: promptText }]
-                        }],
-                        systemInstruction: {
-                            parts: [{ text: systemInstruction }]
-                        }
-                    })
-                }
-            );
+            // PROXY CALL - No API Key exposed in Frontend
+            const res = await fetch('/api/ai-proxy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: promptText })
+            });
 
-            if (!res.ok) throw new Error("API Bağlantı Hatası");
+            if (!res.ok) {
+                // Backend might return specific error json or text
+                const errData = await res.json().catch(() => ({ error: "Sunucu Hatası" }));
+                throw new Error(errData.error || "API Bağlantı Hatası");
+            }
 
             const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Yanıt alınamadı.";
-            setResponse(text);
+            // Backend returns { answer: "..." }
+            setResponse(data.answer || "Yanıt alınamadı.");
+
         } catch (err) {
             console.error(err);
+            // Show generic secure error to user
             setError("Sistem Hatası: AI sunucusuna erişilemiyor. Lütfen daha sonra tekrar deneyin.");
         } finally {
             setIsLoading(false);

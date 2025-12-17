@@ -18,8 +18,8 @@ class ErrorBoundary extends React.Component {
 
     handleReset = () => {
         this.setState({ hasError: false, error: null, errorInfo: null });
-        // Opsiyonel: Sayfayı yenilemek için
-        // window.location.reload();
+        // Hard Refresh to clear stale state
+        window.location.reload();
     };
 
     render() {

@@ -69,6 +69,12 @@ module.exports = {
         }
       }
     },
+    zIndex: {
+      'navbar': '999',
+      'dropdown': '1000',
+      'modal': '1050',
+      'toast': '1100',
+    },
   },
   plugins: [],
 }
