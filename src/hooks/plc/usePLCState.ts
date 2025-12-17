@@ -28,17 +28,17 @@ export const usePLCState = () => {
             const availableNames = Object.values(COLOR_MAP).map(v => v.name).join(', ');
             dispatch({
                 type: PLC_ACTIONS.SET_MESSAGE,
-                payload: `🚨 Üretim planında GEÇERSİZ renkler: ${invalidParts.join(', ')}. Sadece: ${availableNames}`
+                payload: { key: "sim.msg.invalid_parts", params: { invalid: invalidParts.join(', '), valid: availableNames } }
             });
         } else if (fullRecipe.length > 0) {
             dispatch({
                 type: PLC_ACTIONS.SET_MESSAGE,
-                payload: `Üretim planı yüklendi: ${fullRecipe.length} parça. Sistem hazır.`
+                payload: { key: "sim.msg.plan_loaded", params: { count: fullRecipe.length } }
             });
         } else {
             dispatch({
                 type: PLC_ACTIONS.SET_MESSAGE,
-                payload: "Üretim planı boş veya geçersiz."
+                payload: { key: "sim.msg.plan_empty" }
             });
         }
     }, [state.partQueueText]);
@@ -57,7 +57,7 @@ export const usePLCState = () => {
 
         setTimeout(() => {
             if (!state.liveMode && partRecipeRef.current.length === 0) {
-                return dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: "🔴 HATA: Üretim planı boş veya geçersiz!" });
+                return dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.error_empty" } });
             }
             if (!state.isRunning) {
                 dispatch({ type: PLC_ACTIONS.START });

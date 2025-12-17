@@ -1,12 +1,15 @@
 import React from "react";
 import { Gauge, Code as CodeIcon, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Skills() {
+  const { t } = useLanguage();
+
   return (
     <div className="max-w-5xl mx-auto py-8">
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-extrabold text-slate-800 mb-2">Teknik Yetkinlikler</h2>
-        <p className="text-slate-500">Projelerimde kullandığım teknolojiler ve uzmanlık seviyelerim.</p>
+        <h2 className="text-3xl font-extrabold text-slate-800 mb-2">{t("skills.title")}</h2>
+        <p className="text-slate-500">{t("skills.desc")}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -21,14 +24,14 @@ export default function Skills() {
             <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-6">
               <Gauge size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-6">Endüstriyel Otomasyon</h3>
+            <h3 className="text-xl font-bold text-slate-800 mb-6">{t("skills.automation.title")}</h3>
 
             <ul className="space-y-6">
               {[
                 { name: 'Siemens TIA Portal (S7-1200/1500)', lvl: 95 },
-                { name: 'SCADA & HMI Tasarımı (WinCC)', lvl: 90 },
-                { name: 'Endüstriyel Haberleşme (Profinet/Modbus)', lvl: 85 },
-                { name: 'Hareket Kontrol (Servo/Motion)', lvl: 80 }
+                { name: t("skills.scada"), lvl: 90 },
+                { name: t("skills.comm"), lvl: 85 },
+                { name: t("skills.motion"), lvl: 80 }
               ].map(skill => (
                 <li key={skill.name}>
                   <div className="flex justify-between items-center mb-2">
@@ -60,14 +63,14 @@ export default function Skills() {
             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
               <CodeIcon size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-6">Yazılım Geliştirme</h3>
+            <h3 className="text-xl font-bold text-slate-800 mb-6">{t("skills.software.title")}</h3>
 
             <ul className="space-y-6">
               {[
                 { name: 'React.js & Modern Frontend', lvl: 85 },
                 { name: 'JavaScript (ES6+) / TypeScript', lvl: 80 },
                 { name: 'C# / .NET Core', lvl: 75 },
-                { name: 'SQL / Veritabanı Yönetimi', lvl: 70 }
+                { name: t("skills.sql"), lvl: 70 }
               ].map(skill => (
                 <li key={skill.name}>
                   <div className="flex justify-between items-center mb-2">

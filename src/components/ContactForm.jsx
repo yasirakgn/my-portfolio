@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Mail, User, Send, Check } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ContactForm() {
   const [formState, setFormState] = useState("idle");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [captchaToken, setCaptchaToken] = useState(null);
+  const { t } = useLanguage();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -14,7 +16,7 @@ export default function ContactForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!captchaToken) {
-      alert("Lütfen 'Ben robot değilim' doğrulamasını yapın.");
+      alert(t("contact.error.captcha"));
       return;
     }
     setFormState("sending");
@@ -36,7 +38,7 @@ export default function ContactForm() {
       setFormState("success");
     } catch (err) {
       console.error(err);
-      alert("Mesaj gönderilemedi! Sunucu bağlantısını kontrol edin.");
+      alert(t("contact.error.generic"));
       setFormState("idle");
     }
   };
@@ -44,7 +46,7 @@ export default function ContactForm() {
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-cyan-400 mb-6 flex items-center font-mono border-b border-gray-700 pb-2">
-        <Mail className="mr-3" /> İLETİŞİM AĞI
+        <Mail className="mr-3" /> {t("contact.title")}
       </h2>
       <div className="bg-gray-800 border-t-4 border-cyan-500 p-8 rounded shadow-2xl relative">
         {formState === "success" ? (
@@ -52,15 +54,15 @@ export default function ContactForm() {
             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-500 text-green-400">
               <Check size={40} />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Mesaj İletildi!</h3>
-            <p className="text-gray-400">Sistem yöneticisi en kısa sürede dönüş yapacaktır.</p>
-            <button onClick={() => setFormState("idle")} className="mt-6 text-cyan-400 hover:underline">Yeni Mesaj Gönder</button>
+            <h3 className="text-2xl font-bold text-white mb-2">{t("contact.success.title")}</h3>
+            <p className="text-gray-400">{t("contact.success.desc")}</p>
+            <button onClick={() => setFormState("idle")} className="mt-6 text-cyan-400 hover:underline">{t("contact.success.btn")}</button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-mono text-cyan-400 uppercase">Kimlik (Ad Soyad)</label>
+                <label className="text-xs font-mono text-cyan-400 uppercase">{t("contact.label.name")}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 text-gray-500 w-5 h-5" />
                   <input
@@ -70,12 +72,12 @@ export default function ContactForm() {
                     value={formData.name}
                     onChange={handleChange}
                     className="w-full bg-gray-900 border border-gray-600 text-white pl-10 p-3 rounded focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors font-mono"
-                    placeholder="Ad Soyad"
+                    placeholder={t("contact.placeholder.name")}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-mono text-cyan-400 uppercase">Frekans (E-posta)</label>
+                <label className="text-xs font-mono text-cyan-400 uppercase">{t("contact.label.email")}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 text-gray-500 w-5 h-5" />
                   <input
@@ -84,14 +86,14 @@ export default function ContactForm() {
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full bg-gray-900 border border-gray-600 text-white pl-10 p-3 rounded focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors font-mono"
-                    placeholder="ornek@email.com"
+                    placeholder={t("contact.placeholder.email")}
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-mono text-cyan-400 uppercase">Veri Paketi (Mesaj)</label>
+              <label className="text-xs font-mono text-cyan-400 uppercase">{t("contact.label.message")}</label>
               <textarea
                 required
                 rows="5"
@@ -99,7 +101,7 @@ export default function ContactForm() {
                 value={formData.message}
                 onChange={handleChange}
                 className="w-full bg-gray-900 border border-gray-600 text-white p-3 rounded focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors font-mono"
-                placeholder="Mesajınızı buraya girin..."
+                placeholder={t("contact.placeholder.message")}
               ></textarea>
             </div>
 
@@ -126,11 +128,11 @@ export default function ContactForm() {
               {formState === "sending" ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  GÖNDERİLİYOR...
+                  {t("contact.submit.sending")}
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" /> VERİYİ GÖNDER
+                  <Send className="w-5 h-5" /> {t("contact.submit.default")}
                 </>
               )}
             </button>

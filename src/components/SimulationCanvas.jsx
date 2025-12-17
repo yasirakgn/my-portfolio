@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import {
     INPUT_CONVEYOR_Y,
     MAIN_OUTPUT_CONVEYOR_Y,
@@ -18,6 +19,7 @@ import {
 const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 
 export default function SimulationCanvas({ state, refs, actions, isPreview = false }) {
+    const { t } = useLanguage();
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const animationRef = useRef({ id: null, offset: 0 });
@@ -39,27 +41,48 @@ export default function SimulationCanvas({ state, refs, actions, isPreview = fal
         robotPosRef, robotPartRef, outputPartsRef, inputPartRef
     } = safeRefs;
 
-    const safeState = state || { isRunning: true, message: "Demo Mode" };
+    const safeState = state || { isRunning: true, message: { key: "sim.msg.offline_mode" } }; // Default safe message
     const safeActions = actions || {
-        updateRobotAnimation: (dt) => { }, // No-op in demo for now, or add simple wobble
+        updateRobotAnimation: (dt) => { },
         updateConveyorMovement: (dt) => { },
         runPLCStep: () => { }
     };
 
     const { isRunning, message } = safeState;
 
+    // Helper to resolve message object or string to translated text
+    const resolveMessage = (msg) => {
+        if (!msg) return "";
+        if (typeof msg === 'string') return msg; // Legacy/Fallback support
+        if (msg.key) {
+            const translatedParams = {};
+            if (msg.params) {
+                Object.keys(msg.params).forEach(k => {
+                    const val = msg.params[k];
+                    // Recursively translate values if they look like keys (e.g. sim.color.*)
+                    if (typeof val === 'string' && val.startsWith('sim.')) {
+                        translatedParams[k] = t(val);
+                    } else {
+                        translatedParams[k] = val;
+                    }
+                });
+            }
+            return t(msg.key, translatedParams);
+        }
+        return "";
+    };
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
 
-        // --- RESIZE LİSTENER & CLEANUP (FIXED) ---
+        // --- RESIZE LISTENER ---
         const resizeCanvas = () => {
             const container = containerRef.current;
             if (container) {
                 const newWidth = container.clientWidth;
                 canvas.width = newWidth;
-                // Aspect Ratio Koruması
                 const newHeight = newWidth * (ORIGINAL_HEIGHT / ORIGINAL_WIDTH);
                 canvas.height = newHeight;
                 scaleFactorRef.current = newWidth / ORIGINAL_WIDTH;
@@ -69,176 +92,312 @@ export default function SimulationCanvas({ state, refs, actions, isPreview = fal
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // --- DRAWING LOGIC ---
-        const drawConveyors = () => {
-            ctx.fillStyle = "#1F2937"; ctx.fillRect(0, 0, ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
+        // --- INDUSTRIAL DRAWING HELPERS (DEFINED INSIDE EFFECT TO ACCESS CTX/CONSTANTS) ---
 
-            const drawConveyorLine = (startX, y, endX, label) => {
-                ctx.fillStyle = "#374151"; ctx.fillRect(startX, y, endX - startX, 25);
-                ctx.fillStyle = "#2D3748"; ctx.fillRect(startX, y, endX - startX, 20);
-                ctx.fillStyle = "#4B5563"; ctx.fillRect(startX, y + 2, endX - startX, 16);
-                ctx.fillStyle = "#9CA3AF";
-                const segmentLength = 40;
-                for (let i = startX; i < endX; i += segmentLength) {
-                    const rollerX = i + (animationRef.current.offset * 0.5) % segmentLength;
-                    ctx.beginPath(); ctx.arc(rollerX, y + 10, 3, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = "#2D3748";
-                    ctx.beginPath(); ctx.arc(rollerX - 1, y + 10 - 1, 2, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = "#9CA3AF";
+        const drawConveyorBelt = (x, y, length, label) => {
+            const width = 40;
+            // Frame
+            ctx.fillStyle = '#374151'; // Gray-700
+            ctx.fillRect(x, y - width / 2, length, width);
+
+            // Rails
+            ctx.fillStyle = '#1F2937'; // Gray-800
+            ctx.fillRect(x, y - width / 2 - 4, length, 4);
+            ctx.fillRect(x, y + width / 2, length, 4);
+
+            // Rollers
+            ctx.fillStyle = '#6B7280';
+            const rollerSpacing = 20;
+            const offset = animationRef.current.offset % rollerSpacing;
+            for (let i = 0; i < length; i += rollerSpacing) {
+                const rx = x + i + offset;
+                if (rx < x + length) {
+                    ctx.fillRect(rx, y - width / 2 + 2, 4, width - 4);
                 }
-                ctx.strokeStyle = "#111827"; ctx.lineWidth = 1; ctx.strokeRect(startX, y, endX - startX, 20);
-                if (label) { ctx.fillStyle = "#9CA3AF"; ctx.textAlign = "left"; ctx.font = "12px Inter"; ctx.fillText(label, startX + 5, y - 5); }
-            };
+            }
 
-            drawConveyorLine(0, INPUT_CONVEYOR_Y, INPUT_PICKUP_X + 50, "Giriş Konveyörü");
-            drawConveyorLine(OUTPUT_DROP_X - 50, MAIN_OUTPUT_CONVEYOR_Y, DIVERTER_X + 20, "Ana Konveyör");
-            drawConveyorLine(DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET, BIN_X + BIN_WIDTH, "Konveyör A");
-            drawConveyorLine(DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET, BIN_X + BIN_WIDTH, "Konveyör B");
+            // Legs (Industrial Stand)
+            ctx.fillStyle = '#6B7280';
+            for (let i = 20; i < length; i += 100) {
+                ctx.fillRect(x + i, y + width / 2 + 4, 10, 50); // Vertical Leg
+                ctx.fillRect(x + i - 10, y + width / 2 + 54, 30, 4); // Foot
+            }
 
-            // Diverter
-            ctx.fillStyle = "#4B5563"; ctx.fillRect(DIVERTER_X - 12, MAIN_OUTPUT_CONVEYOR_Y - 55, 24, 75);
-            ctx.fillStyle = "#374151"; ctx.fillRect(DIVERTER_X - 10, MAIN_OUTPUT_CONVEYOR_Y - 50, 20, 70);
+            if (label) {
+                ctx.fillStyle = '#9CA3AF';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(label, x + 5, y + width / 2 + 20);
+            }
+        };
+
+        const drawIndustrialSensor = (x, y, active, label) => {
+            // Stand
+            ctx.fillStyle = '#4B5563';
+            ctx.fillRect(x - 5, y + 25, 10, 40); // Post to floor
+
+            // Sensor Head
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(x - 8, y + 10, 16, 16);
+
+            // Status Light
+            ctx.fillStyle = active ? '#EF4444' : '#10B981'; // Red=Detect, Green=Ready
+            ctx.beginPath();
+            ctx.arc(x, y + 18, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Laser Beam
+            if (active) {
+                ctx.strokeStyle = '#EF4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y + 10);
+                ctx.lineTo(x, y - 20); // Across belt
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 2]);
+                ctx.beginPath();
+                ctx.moveTo(x, y + 10);
+                ctx.lineTo(x, y - 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.fillStyle = '#9CA3AF';
+            ctx.font = '9px monospace';
+            ctx.fillText(label, x - 15, y + 70);
+        };
+
+        const drawBoxingStation = (x, y) => {
+            // Station Housing
+            ctx.fillStyle = '#1F2937';
+            ctx.fillRect(x, y - 40, 60, 80);
+
+            // Output Chute / Box area
+            ctx.fillStyle = '#D1D5DB'; // Box Color
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 10);
+            ctx.lineTo(x + 50, y + 10);
+            ctx.lineTo(x + 50, y + 40);
+            ctx.lineTo(x + 10, y + 40);
+            ctx.fill();
+
+            // Flaps
+            ctx.strokeStyle = '#9CA3AF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 10, y + 10, 40, 30);
+            ctx.beginPath(); ctx.moveTo(x + 10, y + 25); ctx.lineTo(x + 50, y + 25); ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#FFF';
+            ctx.font = '16px Arial';
+            ctx.fillText("📦", x + 15, y - 10);
+        };
+
+        const drawRobotArm = () => {
+            const currentPos = robotPosRef.current;
+
+            // Base
+            ctx.fillStyle = '#374151';
+            ctx.beginPath(); ctx.arc(ROBOT_BASE_X, ROBOT_BASE_Y, 25, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#4B5563'; ctx.lineWidth = 4; ctx.stroke();
+
+            // IK Logic (Elbow) for LIFT Visualization
+            const dx = currentPos.x - ROBOT_BASE_X;
+            const dy = currentPos.y - ROBOT_BASE_Y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const midX = ROBOT_BASE_X + dx * 0.5;
+            const midY = ROBOT_BASE_Y + dy * 0.5;
+            const perpX = -dy / dist;
+            const perpY = dx / dist;
+            const offset = Math.min(dist / 2.5, 80) + 20; // High arc for "Lift"
+            const elbowX = midX + perpX * offset;
+            const elbowY = midY + perpY * offset;
+
+            // Arm Segments
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#9CA3AF'; ctx.lineWidth = 14;
+            ctx.beginPath(); ctx.moveTo(ROBOT_BASE_X, ROBOT_BASE_Y); ctx.lineTo(elbowX, elbowY); ctx.stroke();
+
+            ctx.strokeStyle = '#6B7280'; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(currentPos.x, currentPos.y); ctx.stroke();
+
+            // Joints
+            ctx.fillStyle = '#111827';
+            ctx.beginPath(); ctx.arc(ROBOT_BASE_X, ROBOT_BASE_Y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(elbowX, elbowY, 12, 0, Math.PI * 2); ctx.fill();
+
+            // Gripper
+            const isHolding = !!robotPartRef.current;
+            ctx.fillStyle = isHolding ? '#10B981' : '#EF4444';
+            ctx.beginPath(); ctx.arc(currentPos.x, currentPos.y, 15, 0, Math.PI * 2); ctx.fill();
+        };
+
+        const drawDiverterGate = () => {
             ctx.save();
-            ctx.translate(DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y + 10);
+            ctx.translate(DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y);
+
+            // Check for active diversion
             let angle = 0;
             const activePart = outputPartsRef.current.find(p => p.conveyorPhase === 'DIVERTER_MOVE');
             if (activePart) {
-                const targetAngle = activePart.type === 'TYPE_A' ? -Math.PI / 6 : Math.PI / 6;
+                // Rotate -45 for Top (Type A?), +45 for Bottom (Type B?)
+                // Logic: Type A -> Bin A (Top, Y reduced) -> Angle Negative?
+                // Let's check logic: isTypeA ? Top ...
+                // Actually, visualization: Top is negative Y.
+                const targetAngle = activePart.targetY < MAIN_OUTPUT_CONVEYOR_Y ? -Math.PI / 4 : Math.PI / 4;
                 angle = targetAngle * Math.min(activePart.diverterProgress * 2, 1);
             }
+
             ctx.rotate(angle);
-            ctx.fillStyle = "#C0C0C0"; ctx.fillRect(-5, -5, 60, 10);
-            ctx.fillStyle = "#4B5563"; ctx.beginPath(); ctx.arc(60, 0, 5, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#F59E0B';
+            ctx.beginPath();
+            ctx.moveTo(-15, -35); // Long wedge
+            ctx.lineTo(15, 0);    // Pivot
+            ctx.lineTo(-15, 35);
+            ctx.fill();
+
+            // Pivot Point
+            ctx.fillStyle = '#78350F';
+            ctx.beginPath(); ctx.arc(10, 0, 4, 0, Math.PI * 2); ctx.fill();
+
             ctx.restore();
-            ctx.fillStyle = "#E5E7EB"; ctx.textAlign = "center"; ctx.font = "12px Inter"; ctx.fillText("Yönlendirici", DIVERTER_X, MAIN_OUTPUT_CONVEYOR_Y - 65);
 
-            // Bins
-            const drawBin = (x, y, color, label) => {
-                const binTopY = y + 20;
-                ctx.fillStyle = "#1F2937"; ctx.fillRect(x, binTopY, BIN_WIDTH, 85);
-                ctx.fillStyle = color; ctx.fillRect(x + 2, binTopY + 2, BIN_WIDTH - 4, 81);
-                ctx.fillStyle = "#9CA3AF"; ctx.fillRect(x - 2, binTopY - 2, BIN_WIDTH + 4, 4);
-                ctx.strokeStyle = "#FFF"; ctx.lineWidth = 1; ctx.strokeRect(x, binTopY, BIN_WIDTH, 85);
-                ctx.fillStyle = "#FFF"; ctx.textAlign = "center"; ctx.font = "12px Inter Bold"; ctx.fillText(label, x + BIN_WIDTH / 2, y + 55);
-            };
-            drawBin(BIN_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET, "#2563EB", "Kutu A");
-            drawBin(BIN_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET, "#DC2626", "Kutu B");
-
-            // Sensors
-            const drawSensor = (x, y, label) => {
-                ctx.fillStyle = "#374151"; ctx.fillRect(x - 5, y - 20, 20, 10);
-                ctx.fillStyle = "#10B981"; ctx.beginPath(); ctx.arc(x + 5, y - 15, 4, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = "#E5E7EB"; ctx.textAlign = "center"; ctx.font = "10px Inter"; ctx.fillText(label, x + 5, y - 25);
-            };
-            drawSensor(SENSOR_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET, "Sensör A");
-            drawSensor(SENSOR_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET, "Sensör B");
-        };
-
-        const drawParts = () => {
-            const drawPart = (p) => {
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; ctx.shadowBlur = 5; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
-                ctx.fillRect(p.x, p.y, p.width, p.height);
-                ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-                ctx.strokeStyle = "#000"; ctx.strokeRect(p.x, p.y, p.width, p.height);
-            };
-            if (inputPartRef.current) drawPart(inputPartRef.current);
-            const rp = robotPartRef.current;
-            if (rp) { rp.x = robotPosRef.current.x - rp.width / 2; rp.y = robotPosRef.current.y - rp.height / 2 - 15; drawPart(rp); }
-            outputPartsRef.current.forEach(drawPart);
-        };
-
-        const drawRobot = () => {
-            const currentPos = robotPosRef.current;
-            const dx = currentPos.x - ROBOT_BASE_X;
-            const dy = currentPos.y - ROBOT_BASE_Y;
-            const dist = distance(currentPos, { x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
-            const midX = ROBOT_BASE_X + dx * 0.5, midY = ROBOT_BASE_Y + dy * 0.5;
-            const perpX = -dy / dist, perpY = dx / dist;
-            const offsetMagnitude = Math.min(dist / 3, 50) + 10;
-            const elbowX = midX + perpX * offsetMagnitude, elbowY = midY + perpY * offsetMagnitude;
-
-            ctx.fillStyle = "#1F2937"; ctx.fillRect(ROBOT_BASE_X - 25, ROBOT_BASE_Y - 10, 50, 60);
-            ctx.fillRect(ROBOT_BASE_X - 35, ROBOT_BASE_Y + 50, 70, 10);
-            ctx.strokeStyle = "#6B7280"; ctx.strokeRect(ROBOT_BASE_X - 25, ROBOT_BASE_Y - 10, 50, 60);
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; ctx.shadowBlur = 5; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3;
-            ctx.strokeStyle = "#60A5FA"; ctx.lineWidth = 12; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(ROBOT_BASE_X, ROBOT_BASE_Y); ctx.lineTo(elbowX, elbowY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(currentPos.x, currentPos.y); ctx.stroke();
-            ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-            ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(ROBOT_BASE_X, ROBOT_BASE_Y, 14, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#C0C0C0"; ctx.beginPath(); ctx.arc(elbowX, elbowY, 10, 0, Math.PI * 2); ctx.fill();
-
-            const held = !!(robotPartRef.current && robotPartRef.current.held);
-            ctx.fillStyle = held ? "#EF4444" : "#10B981";
-            ctx.shadowColor = held ? 'rgba(239, 68, 68, 0.8)' : 'rgba(16, 185, 129, 0.8)';
-            ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(currentPos.x, currentPos.y, 16, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = "#1F2937"; ctx.lineWidth = 5;
-            ctx.beginPath(); ctx.moveTo(currentPos.x + 12, currentPos.y); ctx.lineTo(currentPos.x + 20, currentPos.y - 18); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(currentPos.x - 12, currentPos.y); ctx.lineTo(currentPos.x - 20, currentPos.y - 18); ctx.stroke();
+            // Label
+            ctx.fillStyle = '#D97706';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(t("sim.label.diverter"), DIVERTER_X - 20, MAIN_OUTPUT_CONVEYOR_Y - 45);
         };
 
 
-
-        // ... (rest of code)
-
+        // --- MAIN RENDER LOOP ---
         const animate = (time) => {
-            // Delta Time Calculation
+            // Delta Time
             const now = time || performance.now();
             const rawDt = (now - lastTimeRef.current) / 1000;
-            const dt = Math.min(rawDt, 0.1); // Cap at 100ms prevents jumps
+            const dt = Math.min(rawDt, 0.1);
             lastTimeRef.current = now;
 
-            // Using dt for physics
+            // Physics Update
             safeActions.updateRobotAnimation(dt);
+            if (isRunning) {
+                if (!isPreview) {
+                    safeActions.updateConveyorMovement(dt);
+                    safeActions.runPLCStep();
+                }
+                const speed = 60; // pps visual
+                animationRef.current.offset += speed * dt;
+            }
 
-            const speed = 2; // Animation constant
-            animationRef.current.offset = (animationRef.current.offset + speed) % 60; // Visuals only
-
+            // Draw Setup
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const S = scaleFactorRef.current;
             ctx.save(); ctx.scale(S, S);
 
-            drawConveyors();
+            // Background
+            ctx.fillStyle = '#111827'; ctx.fillRect(0, 0, ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
 
-            if (isRunning) {
-                if (isPreview && !actions) {
-                    // Simple Demo Animation: Move conveyors
-                    animationRef.current.offset = (animationRef.current.offset + speed) % 60;
-                } else {
-                    safeActions.updateConveyorMovement(dt);
-                    safeActions.runPLCStep();
+            // Grid
+            ctx.strokeStyle = '#1F2937'; ctx.lineWidth = 1;
+            for (let i = 0; i < ORIGINAL_WIDTH; i += 100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, ORIGINAL_HEIGHT); ctx.stroke(); }
+
+            // 1. CONVEYORS (Physical Plant)
+            // Input
+            drawConveyorBelt(0, INPUT_CONVEYOR_Y, INPUT_PICKUP_X + 60, t("sim.label.input"));
+
+            // Main Out (Robot Drop -> Diverter)
+            drawConveyorBelt(OUTPUT_DROP_X - 60, MAIN_OUTPUT_CONVEYOR_Y, DIVERTER_X - OUTPUT_DROP_X + 100, t("sim.label.main"));
+
+            // Branches
+            drawConveyorBelt(DIVERTER_X - 20, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET, BIN_X - DIVERTER_X + 20, t("sim.label.conv_a"));
+            drawConveyorBelt(DIVERTER_X - 20, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET, BIN_X - DIVERTER_X + 20, t("sim.label.conv_b"));
+
+            // 2. STATIONS (Fixed)
+            // Input Sensor
+            const isInputActive = inputPartRef.current && inputPartRef.current.x >= INPUT_PICKUP_X - 10;
+            drawIndustrialSensor(INPUT_PICKUP_X, INPUT_CONVEYOR_Y, isInputActive, "Color Scan");
+
+            // Branch Sensors
+            drawIndustrialSensor(SENSOR_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET, safeState.sensorA, t("sim.label.sensor_a"));
+            drawIndustrialSensor(SENSOR_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET, safeState.sensorB, t("sim.label.sensor_b"));
+
+            // Boxing Stations (Downstream)
+            drawBoxingStation(BIN_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET);
+            drawBoxingStation(BIN_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET);
+
+            // Bins (Visual Catchers under lines)
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.1)'; ctx.fillRect(BIN_X, MAIN_OUTPUT_CONVEYOR_Y - BRANCH_OFFSET + 20, BIN_WIDTH, 40);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.1)'; ctx.fillRect(BIN_X, MAIN_OUTPUT_CONVEYOR_Y + BRANCH_OFFSET + 20, BIN_WIDTH, 40);
+
+            // 3. ACTUATORS (Dynamic)
+            drawRobotArm();
+            drawDiverterGate();
+
+            // 4. PARTS
+            const drawPart = (p) => {
+                // Assuming PART_WIDTH and PART_HEIGHT are defined elsewhere or passed
+                const PART_WIDTH = 20;
+                const PART_HEIGHT = 20;
+                const COLOR_MAP = {
+                    'TYPE_A': { color: '#2563EB', name: 'sim.part.type_a' }, // Blue
+                    'TYPE_B': { color: '#DC2626', name: 'sim.part.type_b' }, // Red
+                    'TYPE_C': { color: '#FBBF24', name: 'sim.part.type_c' }, // Yellow
+                };
+
+                const partInfo = COLOR_MAP[p.type] || { color: '#888', name: 'Unknown' };
+                ctx.fillStyle = partInfo.color;
+                ctx.fillRect(p.x, p.y, PART_WIDTH, PART_HEIGHT);
+                ctx.strokeStyle = '#FFF'; ctx.strokeRect(p.x, p.y, PART_WIDTH, PART_HEIGHT);
+                // Label
+                ctx.fillStyle = 'white'; ctx.font = '9px Arial'; ctx.textAlign = 'center';
+                // Try dynamic translation, fallback to part name key
+                ctx.fillText(t(partInfo.name), p.x + PART_WIDTH / 2, p.y + PART_HEIGHT / 2 + 3);
+            };
+
+            if (inputPartRef.current) drawPart(inputPartRef.current);
+            if (robotPartRef.current) {
+                // Attach to robot gripper if held
+                if (robotPartRef.current.held) {
+                    // Assuming PART_WIDTH and PART_HEIGHT are defined elsewhere or passed
+                    const PART_WIDTH = 20;
+                    const PART_HEIGHT = 20;
+                    robotPartRef.current.x = robotPosRef.current.x - PART_WIDTH / 2;
+                    robotPartRef.current.y = robotPosRef.current.y - PART_HEIGHT / 2 + 5;
                 }
+                drawPart(robotPartRef.current);
             }
+            outputPartsRef.current.forEach(drawPart);
 
-            drawParts();
-            drawRobot();
+            // 5. OVERLAY (Header/Status) 
+            // Drawn by HTML overlay in return, but we can add canvas debug if needed.
 
             ctx.restore();
             animationRef.current.id = requestAnimationFrame(animate);
         };
 
-        // Start Animation Loop
         lastTimeRef.current = performance.now();
         animationRef.current.id = requestAnimationFrame(animate);
 
         return () => {
-            // --- CLEANUP ---
             window.removeEventListener('resize', resizeCanvas);
             if (animationRef.current.id) cancelAnimationFrame(animationRef.current.id);
         };
-    }, [isRunning, safeActions, safeRefs, isPreview]);
-    // Dependency array note: 'refs' are usually stable objects, but checking just in case. 
-    // We want to avoid re-binding the loop too often, but we need isRunning for logic inside.
+
+    }, [isRunning, safeActions, safeRefs, isPreview, t]); // Dependencies
+
+
+    const displayMsg = resolveMessage(message);
+    const isError = displayMsg && (displayMsg.includes('🚨') || displayMsg.includes('🔴'));
 
     return (
         <div ref={containerRef} className="w-full h-full relative bg-gray-900 group">
             {/* Header Overlay - Absolute Positioned to save space */}
             <div className="absolute top-0 left-0 w-full p-2 flex justify-between items-center pointer-events-none z-10 bg-gradient-to-b from-gray-900/80 to-transparent">
-                <h2 className="text-sm font-bold text-indigo-300 px-2">CANVAS SİMÜLASYON</h2>
-                <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold border ${message.startsWith('🚨') ? 'bg-red-900/80 border-red-500 text-red-200' : 'bg-gray-800/80 border-gray-600 text-gray-300'}`}>
-                    {message.slice(0, 50)}...
+                <h2 className="text-sm font-bold text-indigo-300 px-2">{t("sim.label.header")}</h2>
+                <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold border ${isError ? 'bg-red-900/80 border-red-500 text-red-200' : 'bg-gray-800/80 border-gray-600 text-gray-300'}`}>
+                    {displayMsg}
                 </div>
             </div>
 
@@ -251,7 +410,7 @@ export default function SimulationCanvas({ state, refs, actions, isPreview = fal
             />
 
             <div role="status" aria-live="polite" className="sr-only">
-                {message}
+                {displayMsg}
             </div>
         </div>
     );

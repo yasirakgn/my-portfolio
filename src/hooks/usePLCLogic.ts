@@ -28,6 +28,7 @@ export const usePLCLogic = () => {
     const {
         robotPosRef,
         targetRef,
+        moveQueueRef,
         robotPartRef,
         outputPartsRef,
         inputPartRef,
@@ -39,7 +40,7 @@ export const usePLCLogic = () => {
     // Bridge: Handle part reaching bin (Physics -> State)
     const handlePartFinished = useCallback((p: SimulationPart) => {
         dispatch({ type: PLC_ACTIONS.INCREMENT_FINISHED });
-        dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: `📦 Parça (${p.name}) Kutu ${p.conveyorId}'ye yerleştirildi.` });
+        dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.part_placed", params: { name: p.name, bin: p.conveyorId } } });
     }, [dispatch]);
 
     const updateConveyorMovement = useCallback((dt: number) => {
@@ -74,7 +75,7 @@ export const usePLCLogic = () => {
                 id: Date.now() + Math.random(),
                 counted: false,
             };
-            dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: `Yeni parça (${nextPart.name}) giriş konveyöründe.` });
+            dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.new_part", params: { name: nextPart.name } } });
         }
     }, [state.liveMode, partRecipeRef, inputPartRef, dispatch]);
 
@@ -97,7 +98,7 @@ export const usePLCLogic = () => {
                     !inputPartRef.current &&
                     !robotPartRef.current
                 ) {
-                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: "Tüm parçalar işlendi." });
+                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.all_processed" } });
                     dispatch({ type: PLC_ACTIONS.STOP });
                 }
             },
@@ -111,13 +112,36 @@ export const usePLCLogic = () => {
                     const grippedPart = { ...inputPartRef.current, held: true };
                     robotPartRef.current = grippedPart;
                     inputPartRef.current = null;
-                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: `Parça (${grippedPart.name}) kavrandı.` });
+                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.part_gripped", params: { name: grippedPart.name } } });
                     setTimeout(() => dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 30 }), 300);
                 } else dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 0 });
             },
             30: () => {
-                animActions.moveRobotTo(OUTPUT_DROP_X, MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT / 2);
-                if (distance(robotPosRef.current, targetRef.current) < 5) dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 40 });
+                // Deadlock Fix: Check if we are already animating (queue has items)
+                // or if we are already targeting the drop point.
+
+                const isTargetingDrop = distance(targetRef.current, { x: OUTPUT_DROP_X, y: MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT / 2 }) < 1;
+                const isAnimating = moveQueueRef.current.length > 0;
+
+                if (!isTargetingDrop && !isAnimating) {
+                    // We haven't issued the final move sequence yet
+                    // Issue the Lift Sequence
+                    const SAFE_LIFT_Y = MAIN_OUTPUT_CONVEYOR_Y - 80; // High clearance
+
+                    // 1. Lift UP
+                    // 2. Traverse to Drop X
+                    // 3. Lower to Drop Y
+                    animActions.queueMove([
+                        { x: INPUT_PICKUP_X, y: SAFE_LIFT_Y },
+                        { x: OUTPUT_DROP_X, y: SAFE_LIFT_Y },
+                        { x: OUTPUT_DROP_X, y: MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT / 2 }
+                    ]);
+                }
+
+                // Transition Condition: Reached Final Target
+                if (distance(robotPosRef.current, { x: OUTPUT_DROP_X, y: MAIN_OUTPUT_CONVEYOR_Y - PART_HEIGHT / 2 }) < 5) {
+                    dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 40 });
+                }
             },
             40: () => {
                 if (robotPartRef.current) {
@@ -136,7 +160,7 @@ export const usePLCLogic = () => {
                         counted: false,
                     });
                     robotPartRef.current = null;
-                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: `Parça (${partToDrop.name}) ana konveyöre bırakıldı.` });
+                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.part_dropped", params: { name: partToDrop.name } } });
                     setTimeout(() => dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 50 }), 500);
                 } else dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 0 });
             },
@@ -145,7 +169,7 @@ export const usePLCLogic = () => {
                 if (distance(robotPosRef.current, targetRef.current) < 5) {
                     dispatch({ type: PLC_ACTIONS.INCREMENT_CYCLE });
                     dispatch({ type: PLC_ACTIONS.NEXT_STEP, payload: 0 });
-                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: "Döngü tamamlandı. Yeni parça bekleniyor." });
+                    dispatch({ type: PLC_ACTIONS.SET_MESSAGE, payload: { key: "sim.msg.cycle_complete" } });
                 }
             },
         };

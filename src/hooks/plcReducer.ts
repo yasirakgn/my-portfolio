@@ -28,7 +28,7 @@ export interface PLCState {
     step: number;
     cycleCount: number;
     finishedCount: number;
-    message: string;
+    message: string | { key: string; params?: any };
     partQueueText: string;
     validRecipeLength: number;
     liveMode: boolean;
@@ -44,7 +44,7 @@ export type UtilsAction =
     | { type: PLC_ACTIONS.INCREMENT_CYCLE }
     | { type: PLC_ACTIONS.INCREMENT_FINISHED }
     | { type: PLC_ACTIONS.SET_QUEUE_TEXT; payload: string }
-    | { type: PLC_ACTIONS.SET_MESSAGE; payload: string }
+    | { type: PLC_ACTIONS.SET_MESSAGE; payload: string | { key: string; params?: any } }
     | { type: PLC_ACTIONS.NEXT_STEP; payload: number }
     | { type: PLC_ACTIONS.UPDATE_METRICS; payload: OeeMetrics }
     | { type: PLC_ACTIONS.VALIDATE_RECIPE; count: number; payload?: string };
@@ -55,7 +55,7 @@ export const initialState: PLCState = {
     step: 0,
     cycleCount: 0,
     finishedCount: 0,
-    message: "Üretim planını düzenleyin ve başlamak için START'a basın.",
+    message: { key: "sim.msg.ready" },
     partQueueText: DEFAULT_PART_QUEUE_TEXT,
     validRecipeLength: 0,
     liveMode: false,
@@ -75,14 +75,14 @@ export function plcReducer(state: PLCState, action: UtilsAction): PLCState {
                 ...state,
                 isRunning: true,
                 step: state.step === 0 ? 0 : state.step,
-                message: state.liveMode ? "🟢 ONLINE MOD: Canlı veri akışı başladı..." : "Simülasyon BAŞLADI."
+                message: state.liveMode ? { key: "sim.msg.online_active" } : { key: "sim.msg.started" }
             };
 
         case PLC_ACTIONS.STOP:
             return {
                 ...state,
                 isRunning: false,
-                message: "🔴 Simülasyon DURDURULDU."
+                message: { key: "sim.msg.stopped" }
             };
 
         case PLC_ACTIONS.RESET:
@@ -98,7 +98,7 @@ export function plcReducer(state: PLCState, action: UtilsAction): PLCState {
                 ...state,
                 liveMode: newMode,
                 isRunning: false,
-                message: newMode ? "📡 Live Mod Aktif: PLC'den veri bekleniyor..." : "Offline Simülasyon Modu"
+                message: newMode ? { key: "sim.msg.live_mode_wait" } : { key: "sim.msg.offline_mode" }
             };
 
         case PLC_ACTIONS.SET_QUEUE_TEXT:

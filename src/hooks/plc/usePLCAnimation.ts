@@ -42,6 +42,7 @@ export const usePLCAnimation = () => {
     // --- Physics Refs ---
     const robotPosRef = useRef<RobotPos>({ x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
     const targetRef = useRef<RobotPos>({ x: ROBOT_BASE_X, y: ROBOT_BASE_Y });
+    const moveQueueRef = useRef<RobotPos[]>([]); // New: Movement Queue
 
     // Nullable refs need explicit null initialization type
     const robotPartRef = useRef<SimulationPart | null>(null);
@@ -51,11 +52,22 @@ export const usePLCAnimation = () => {
     // --- Movement Logic ---
     const moveRobotTo = useCallback((x: number, y: number) => {
         targetRef.current = { x, y };
+        moveQueueRef.current = []; // Clear queue on direct move
+    }, []);
+
+    const queueMove = useCallback((points: RobotPos[]) => {
+        // If queue is empty and we are close to target, set first point immediately?
+        // Or just append.
+        moveQueueRef.current = [...points];
+        if (moveQueueRef.current.length > 0) {
+            targetRef.current = moveQueueRef.current.shift()!;
+        }
     }, []);
 
     const resetPositions = useCallback(() => {
         robotPosRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
         targetRef.current = { x: ROBOT_BASE_X, y: ROBOT_BASE_Y };
+        moveQueueRef.current = [];
         robotPartRef.current = null;
         outputPartsRef.current = [];
         inputPartRef.current = null;
@@ -123,16 +135,27 @@ export const usePLCAnimation = () => {
 
         robotPosRef.current.x += (targetRef.current.x - robotPosRef.current.x) * alpha;
         robotPosRef.current.y += (targetRef.current.y - robotPosRef.current.y) * alpha;
+
+        // Queue Processing
+        // If we are "close enough" to target, and queue has items, pop next target
+        const distSq = (targetRef.current.x - robotPosRef.current.x) ** 2 +
+            (targetRef.current.y - robotPosRef.current.y) ** 2;
+
+        if (distSq < 25 && moveQueueRef.current.length > 0) { // < 5 pixels distance
+            targetRef.current = moveQueueRef.current.shift()!;
+        }
     }, []);
 
     return {
         robotPosRef,
         targetRef,
+        moveQueueRef, // Exposed for logic checks
         robotPartRef,
         outputPartsRef,
         inputPartRef,
         actions: {
             moveRobotTo,
+            queueMove, // Exposed
             updateConveyorMovement,
             updateRobotAnimation,
             resetPositions
