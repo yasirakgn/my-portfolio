@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { Terminal, Home, Cpu, Briefcase, Mail, Grid } from "lucide-react";
+import { Terminal, Home, Cpu, Briefcase, Mail, Grid, X } from "lucide-react";
 
 export default function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
   const navItems = [
     { id: "home", label: "Ana Panel", path: "/", icon: Home },
     { id: "simulation", label: "Simülasyon", path: "/simulation", icon: Grid },
@@ -49,14 +50,39 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Mobile Menu Button (Placeholder) */}
+        {/* Mobile Menu Button */}
         <div className="md:hidden">
-          <button className="text-slate-400 hover:text-white p-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors">
-            <Grid size={24} />
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-slate-400 hover:text-white p-2 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            {isOpen ? <X size={24} /> : <Grid size={24} />}
           </button>
         </div>
-
       </nav>
+
+      {/* Mobile Dropdown Menu */}
+      {isOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-matte-dark/95 border-b border-matte-border/50 backdrop-blur-xl p-4 flex flex-col gap-2 shadow-2xl pointer-events-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              onClick={() => setIsOpen(false)}
+              className={({ isActive }) => `
+                flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
+                ${isActive
+                  ? "bg-matte-card text-pastel-blue border border-slate-700/50"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-white/5"
+                }
+              `}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
