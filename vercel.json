@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/futbolmanyaklari",
+            "destination": "/futbolmanyaklari.html"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
