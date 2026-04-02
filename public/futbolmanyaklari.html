@@ -159,9 +159,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .add-row{display:flex;gap:7px;margin-top:10px;align-items:center}
 .add-row input{flex:1}
 .pos-sel{padding:8px 9px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);color:var(--text);font-size:12px;outline:none;font-family:inherit}
-.wrow{display:flex;align-items:center;gap:9px;margin-bottom:9px}
-.wlabel{font-size:12px;font-weight:500;min-width:115px;color:var(--text)}
-.wval{font-size:12px;font-weight:600;color:var(--green);min-width:22px;text-align:right}
+
 </style>
 </head>
 <body>
@@ -169,7 +167,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <div class="hdr">
   <div class="hdr-sub">⚽ Halı Saha</div>
   <div class="hdr-title">Oyuncu Puanlama</div>
-  <div class="gs-badge">📊 Yagser </div>
+  <div class="gs-badge"> © 2025 Yagser Akgun. All rights reserved. </div>
   <button class="dark-btn" id="darkBtn" onclick="toggleDark()">🌙 Karanlık</button>
 </div>
 
@@ -301,22 +299,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="slabel">Oyuncular</div>
     <div class="stitle">Oyuncu Yönetimi</div>
     <div id="playerList"></div>
-    <div class="add-row">
-      <input type="text" id="newPlayerName" placeholder="Oyuncu adı">
-      <select class="pos-sel" id="newPlayerPos">
-        <option value="GK">🧤 Kaleci</option>
-        <option value="DEF">🛡️ Defans</option>
-        <option value="MID" selected>⚙️ Orta</option>
-        <option value="FWD">⚡ Forvet</option>
-      </select>
+    <div class="add-row" style="flex-wrap:wrap;gap:7px">
+      <input type="text" id="newPlayerName" placeholder="Oyuncu adı" style="min-width:120px;flex:1">
       <button class="abtn pri" onclick="addPlayer()" style="margin:0;white-space:nowrap">+ Ekle</button>
     </div>
-  </div>
-  <div class="card">
-    <div class="slabel">Ağırlıklar</div>
-    <div class="stitle">Kriter Ağırlıkları</div>
-    <div id="weightList"></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px">Toplam: <b id="totalWeight" style="color:var(--green)">100</b></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:7px">Mevkileri satırda düzenleyebilirsin — birden fazla seçilebilir.</div>
   </div>
 </div>
 </div><!-- .app -->
@@ -334,7 +321,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   <div style="background:var(--bg2);border-radius:20px;padding:28px 24px;max-width:280px;width:90%;text-align:center;box-shadow:var(--sh2);border:1px solid var(--border)">
     <div style="font-size:46px;margin-bottom:9px">✅</div>
     <div style="font-size:18px;font-weight:700;margin-bottom:5px">Kaydedildi!</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Google Sheets'e aktarıldı.</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:20px"> © 2025 Yagser Akgun. All rights reserved.</div>
     <button onclick="closeSuccessPopup()" style="background:var(--green);color:#fff;border:none;border-radius:11px;padding:11px 28px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit">Sonuçları Gör →</button>
   </div>
 </div>
@@ -342,27 +329,42 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <script>
 var GS='https://script.google.com/macros/s/AKfycbxn8T0QYMmZpU0NvVylCQLhIsv_HPPFODAvt3vKJ9EzolwYekv1L3ovyuos2DNCuwy3/exec';
 var PLAYERS=JSON.parse(localStorage.getItem('hs_players')||'null')||[
-  {name:'Ahmet',pos:'MID'},{name:'Eren',pos:'MID'},{name:'Nail',pos:'DEF'},
-  {name:'Oguz',pos:'MID'},{name:'Bugay',pos:'FWD'},{name:'Yagser',pos:'MID'},
-  {name:'Cemalettin',pos:'DEF'},{name:'Edip',pos:'MID'},{name:'Mustafa',pos:'FWD'},
-  {name:'Marwan',pos:'MID'},{name:'Ugur',pos:'DEF'},{name:'Atay',pos:'MID'},
-  {name:'Baris',pos:'MID'},{name:'Burak',pos:'FWD'},{name:'Ahmet Gedik',pos:'MID'},{name:'Orhan Abi',pos:'GK'}
+  {name:'Ahmet',pos:['OMO']},{name:'Eren',pos:['FRV']},{name:'Nail',pos:['STP']},
+  {name:'Oguz',pos:['OMO']},{name:'Bugay',pos:['SAN']},{name:'Yagser',pos:['AMO']},
+  {name:'Cemalettin',pos:['STP']},{name:'Edip',pos:['OMO']},{name:'Mustafa',pos:['FRV']},
+  {name:'Marwan',pos:['OMO']},{name:'Ugur',pos:['STP']},{name:'Atay',pos:['OMO']},
+  {name:'Baris',pos:['SAB','SOB']},{name:'Burak',pos:['SAN']},{name:'Ahmet Gedik',pos:['AMO']},{name:'Orhan Abi',pos:['KL']}
 ];
 var CRITERIA=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik','Takim Oyunu'];
 var CDISP=['Pas','Şut','Drib.','Savunma','Hız','Fizik','Takım'];
-var WEIGHTS=JSON.parse(localStorage.getItem('hs_weights')||'null')||[15,15,10,15,15,15,15];
-var POS={GK:'🧤 Kaleci',DEF:'🛡️ Defans',MID:'⚙️ Orta',FWD:'⚡ Forvet'};
+var POS={
+  KL:'🧤 Kaleci',SW:'🧤 Sweeper',
+  STP:'🛡️ Stoper',SAB:'🛡️ Sağ Bek',SOB:'🛡️ Sol Bek',SABK:'🛡️ Sağ Bek Kanat',SOBK:'🛡️ Sol Bek Kanat',
+  DMO:'⚙️ Def. Orta',OMO:'⚙️ Orta Saha',AMO:'⚙️ Atk. Orta',SAO:'⚙️ Sağ Orta',SOO:'⚙️ Sol Orta',
+  SKT:'⚡ Sağ Kanat',SOKT:'⚡ Sol Kanat',SAN:'⚡ Santrafor',FRV:'⚡ Forvet',IKF:'⚡ İkinci Forvet'
+};
+var POS_FULL=POS;
+var POS_GROUPS=[
+  {label:'🧤 Kale',keys:['KL','SW']},
+  {label:'🛡️ Defans',keys:['STP','SAB','SOB','SABK','SOBK']},
+  {label:'⚙️ Orta Saha',keys:['DMO','OMO','AMO','SAO','SOO']},
+  {label:'⚡ Hücum',keys:['SKT','SOKT','SAN','FRV','IKF']}
+];
+var VALID_POS=['KL','SW','STP','SAB','SOB','SABK','SOBK','DMO','OMO','AMO','SAO','SOO','SKT','SOKT','SAN','FRV','IKF'];
+function normPos(p){
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  return arr.filter(function(k){return VALID_POS.indexOf(k)>=0;});
+}
 var MEDALS=['🥇','🥈','🥉'];
 var resultData=null,currentScores={},completedCards={},absentPlayers={},currentRater='';
 var darkMode=localStorage.getItem('hs_dark')==='1';
 
 if(darkMode)document.body.classList.add('dark');
-updateDarkBtn();initSelect();renderPlayerList();renderWeightList();buildGoalInputs();
+updateDarkBtn();initSelect();renderPlayerList();buildGoalInputs();
 document.getElementById('matchWeek').value=getWeekLabel();
 
 function sp(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function savePlayers(){sp('hs_players',PLAYERS);}
-function saveWeights(){sp('hs_weights',WEIGHTS);}
 
 function toggleDark(){darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);localStorage.setItem('hs_dark',darkMode?'1':'0');updateDarkBtn();}
 function updateDarkBtn(){var b=document.getElementById('darkBtn');if(b)b.textContent=darkMode?'☀️ Aydınlık':'🌙 Karanlık';}
@@ -413,12 +415,12 @@ function buildCards(){
   PLAYERS.filter(function(p){return p.name!==currentRater;}).forEach(function(p){
     var card=document.createElement('div');card.className='pcard';card.id='card-'+san(p.name);
     var ch=CRITERIA.map(function(cr,ci){
-      return '<div class="crit-row"><span class="crit-name">'+CDISP[ci]+'<span class="crit-w"> ×'+WEIGHTS[ci]+'</span></span>'+
+      return '<div class="crit-row"><span class="crit-name">'+CDISP[ci]+'</span>'+
         '<input type="range" min="1" max="10" step="1" value="5" oninput="onSlider(\''+san(p.name)+'\',\''+cr+'\',this.value,\'d-'+san(p.name)+'-'+san(cr)+'\',\''+p.name+'\')">'+
         '<span class="score-num" id="d-'+san(p.name)+'-'+san(cr)+'">—</span></div>';
     }).join('');
     card.innerHTML='<div class="pcard-head"><div class="av">'+p.name.charAt(0)+'</div><span class="pcard-name">'+p.name+'</span>'+
-      '<span class="pos-badge">'+(POS[p.pos]||p.pos)+'</span>'+
+      '<span class="pos-badge">'+posShort(p)+'</span>'+
       '<button class="abs-btn" id="abs-'+san(p.name)+'" onclick="toggleAbsent(\''+p.name+'\')">Gelmedi</button>'+
       '<span class="done-badge">✓ Tamam</span></div>'+ch;
     c.appendChild(card);
@@ -442,9 +444,28 @@ function toggleAbsent(pname){
   var pid=san(pname),card=document.getElementById('card-'+pid),btn=document.getElementById('abs-'+pid);
   var rows=card.querySelectorAll('.crit-row');
   if(absentPlayers[pname]){
-    delete absentPlayers[pname];delete completedCards[pname];delete currentScores[pname];
+    // Geri al — slider değerlerini yeniden oku
+    delete absentPlayers[pname];
+    delete completedCards[pname];
+    delete currentScores[pname];
     card.className='pcard';btn.classList.remove('on');btn.textContent='Gelmedi';
     rows.forEach(function(r){r.style.opacity='1';r.style.pointerEvents='auto';});
+    // Slider'lardaki mevcut değerleri currentScores'a geri yükle
+    CRITERIA.forEach(function(cr,ci){
+      var slider=card.querySelector('input[type=range]:nth-of-type('+(ci+1)+')');
+      var dispId='d-'+pid+'-'+san(cr);
+      var disp=document.getElementById(dispId);
+      if(slider&&+slider.value>0){
+        if(!currentScores[pname])currentScores[pname]={};
+        currentScores[pname][cr]=+slider.value;
+        if(disp){disp.textContent=slider.value;disp.style.color=scoreColor(+slider.value);}
+      }
+    });
+    // Tüm kriterler dolduysa tamamlandı say
+    if(CRITERIA.every(function(c){return currentScores[pname]&&currentScores[pname][c]!==undefined;})){
+      completedCards[pname]=true;
+      card.className='pcard done';
+    }
   }else{
     absentPlayers[pname]=true;completedCards[pname]=true;
     card.className='pcard absent';btn.classList.add('on');btn.textContent='✗ Gelmedi';
@@ -528,14 +549,31 @@ function loadResults(cb){
   gs({action:'getResults'}).then(function(d){resultData=d;cb(d);}).catch(function(){cb(null);});
 }
 
-function weightedRating(p){
-  var total=0,wSum=0;
-  CRITERIA.forEach(function(c,ci){
-    var vals=[];
+function posLabel(p){
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  return arr.map(function(k){return POS_FULL[k]||k;}).join(' / ');
+}
+function posShort(p){
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  return arr.map(function(k){return POS[k]||k;}).join('/');
+}
+function hasPos(p,key){
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  return arr.indexOf(key)>=0;
+}
+function getPosGroup(p){
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  if(arr.some(function(k){return k==='GK'||k==='SW';}))return'GK';
+  if(arr.some(function(k){return k==='CB'||k==='RB'||k==='LB'||k==='RWB'||k==='LWB';}))return'DEF';
+  if(arr.some(function(k){return k==='CDM'||k==='CM'||k==='CAM'||k==='RM'||k==='LM';}))return'MID';
+  return'FWD';
+}
+function simpleRating(p){
+  var vals=[];
+  CRITERIA.forEach(function(c){
     if(p.weeklyKriterler)Object.values(p.weeklyKriterler).forEach(function(wk){if(wk&&wk[c]!=null)vals.push(+wk[c]);});
-    if(vals.length){var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;total+=avg*(WEIGHTS[ci]||10);wSum+=WEIGHTS[ci]||10;}
   });
-  return wSum?total/wSum:null;
+  return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
 }
 
 function renderSonuc(){
@@ -547,7 +585,7 @@ function renderSonuc(){
     var sorted=data.players.filter(function(p){return p.genelOrt!==null;});
     if(!sorted.length){nd.style.display='block';return;}
     sorted.forEach(function(p,i){
-      var wAvg=weightedRating(p);
+      var wAvg=simpleRating(p);
       var rating=wAvg!==null?Math.round(wAvg*10):Math.round((p.genelOrt||0)*10);
       var mc=i===0?'m1':i===1?'m2':i===2?'m3':'';
       var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:'MID'};
@@ -685,7 +723,7 @@ function renderComparison(){
     var pa=data.players.find(function(p){return p.name===a;});
     var pb=data.players.find(function(p){return p.name===b;});
     if(!pa||!pb){el.innerHTML='<div class="no-data">Yeterli veri yok.</div>';return;}
-    var aRating=weightedRating(pa)||0,bRating=weightedRating(pb)||0;
+    var aRating=simpleRating(pa)||0,bRating=simpleRating(pb)||0;
     var aObjPos=PLAYERS.find(function(p){return p.name===a;})||{pos:'MID'};
     var bObjPos=PLAYERS.find(function(p){return p.name===b;})||{pos:'MID'};
 
@@ -737,7 +775,7 @@ function renderSezon(){
     if(!data||!data.players||!data.weeks||!data.weeks.length){el.innerHTML='<div class="no-data">Henüz yeterli veri yok.</div>';return;}
     var players=data.players.filter(function(p){return p.genelOrt!==null;});
     if(!players.length){el.innerHTML='<div class="no-data">Henüz puan girilmedi.</div>';return;}
-    var sorted=[].concat(players).sort(function(a,b){return (weightedRating(b)||0)-(weightedRating(a)||0);});
+    var sorted=[].concat(players).sort(function(a,b){return (simpleRating(b)||0)-(simpleRating(a)||0);});
     var mvp=sorted[0];
 
     // En tutarlı (std dev en düşük)
@@ -765,7 +803,7 @@ function renderSezon(){
     var bestSpeed=players.slice().sort(function(a,b){return kritAvg(b,'Hiz / Kondisyon')-kritAvg(a,'Hiz / Kondisyon');})[0];
 
     var awards=[
-      {icon:'🏆',title:'MVP',name:mvp.name,val:'Rating: '+Math.round((weightedRating(mvp)||0)*10)},
+      {icon:'🏆',title:'MVP',name:mvp.name,val:'Rating: '+Math.round((simpleRating(mvp)||0)*10)},
       {icon:'🎯',title:'En Tutarlı',name:mossCon.name,val:'Std. sapma: '+stddev(mossCon).toFixed(2)},
       {icon:'📅',title:'En Çok Katılan',name:mostAttend.name,val:attendCount(mostAttend)+' / '+data.weeks.length+' maç'},
       {icon:'🛡️',title:'Demir Kalkan',name:bestDef.name,val:'Savunma: '+kritAvg(bestDef,'Savunma').toFixed(1)},
@@ -785,7 +823,7 @@ function renderSezon(){
     html+='<div class="sec-title">Sezon Sıralaması</div>';
     html+='<table class="rtbl"><thead><tr><th>#</th><th>Oyuncu</th><th>Rating</th><th>Katılım</th></tr></thead><tbody>';
     sorted.slice(0,10).forEach(function(p,i){
-      var r=Math.round((weightedRating(p)||0)*10);
+      var r=Math.round((simpleRating(p)||0)*10);
       var att=attendCount(p)+'/'+data.weeks.length;
       html+='<tr><td style="font-weight:700;color:var(--green)">'+(MEDALS[i]||i+1)+'</td>'+
         '<td style="font-weight:600">'+p.name+'</td>'+
@@ -834,14 +872,14 @@ function buildTeams(){
   // Pozisyona göre dengeli dağılım
   var players=resultData.players.filter(function(p){return p.genelOrt;}).map(function(p){
     var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:'MID'};
-    return{name:p.name,avg:weightedRating(p)||p.genelOrt||0,pos:pObj.pos};
+    return{name:p.name,avg:simpleRating(p)||p.genelOrt||0,pos:pObj.pos,pobj:pObj};
   }).sort(function(a,b){return b.avg-a.avg;});
 
   // Snake draft: 1,2,2,1,1,2... by position groups
-  var gk=players.filter(function(p){return p.pos==='GK';});
-  var def=players.filter(function(p){return p.pos==='DEF';});
-  var mid=players.filter(function(p){return p.pos==='MID';});
-  var fwd=players.filter(function(p){return p.pos==='FWD';});
+  var gk=players.filter(function(p){return getPosGroup(p)==='GK';});
+  var def=players.filter(function(p){return getPosGroup(p)==='DEF';});
+  var mid=players.filter(function(p){return getPosGroup(p)==='MID';});
+  var fwd=players.filter(function(p){return getPosGroup(p)==='FWD';});
   var t1=[],t2=[];
   [gk,def,mid,fwd].forEach(function(grp){
     grp.forEach(function(p,i){(i%2===0?t1:t2).push(p);});
@@ -854,7 +892,7 @@ function shuffleTeams(){
   document.getElementById('noDataTakim').style.display='none';
   var players=resultData.players.filter(function(p){return p.genelOrt;}).map(function(p){
     var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:'MID'};
-    return{name:p.name,avg:weightedRating(p)||p.genelOrt||0,pos:pObj.pos};
+    return{name:p.name,avg:simpleRating(p)||p.genelOrt||0,pos:pObj.pos,pobj:pObj};
   });
   for(var i=players.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=players[i];players[i]=players[j];players[j]=t;}
   renderTeams(players.slice(0,Math.ceil(players.length/2)),players.slice(Math.ceil(players.length/2)));
@@ -862,7 +900,7 @@ function shuffleTeams(){
 
 function teamBalanceScore(team){
   var posCounts={GK:0,DEF:0,MID:0,FWD:0};
-  team.forEach(function(p){posCounts[p.pos]=(posCounts[p.pos]||0)+1;});
+  team.forEach(function(p){var g=getPosGroup(p);posCounts[g]=(posCounts[g]||0)+1;});
   var idealGK=1,idealDEF=2,idealMID=3,idealFWD=2;
   var penalty=Math.abs(posCounts.GK-idealGK)+Math.abs(posCounts.DEF-idealDEF)+Math.abs(posCounts.MID-idealMID)+Math.abs(posCounts.FWD-idealFWD);
   return penalty;
@@ -882,7 +920,7 @@ function renderTeams(t1,t2){
     '<span style="font-size:12px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:20px">'+posBalance+'</span></div>';
 
   var list=function(t){return t.map(function(p){
-    return '<div class="tplayer"><span>'+p.name+' <small style="color:var(--text3);font-size:10px">'+(POS[p.pos]||'').split(' ')[0]+'</small></span>'+
+    return '<div class="tplayer"><span>'+p.name+' <small style="color:var(--text3);font-size:10px">'+posShort(p)+'</small></span>'+
       '<span class="tscore">'+(p.avg?(p.avg*10).toFixed(0):'?')+'</span></div>';
   }).join('');};
   document.getElementById('teamResult').innerHTML=
@@ -892,21 +930,78 @@ function renderTeams(t1,t2){
 }
 
 // ─── AYARLAR ────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
 function renderPlayerList(){
   var el=document.getElementById('playerList');if(!el)return;
   el.innerHTML=PLAYERS.map(function(p,i){
-    return '<div class="player-row"><div class="av">'+p.name.charAt(0)+'</div>'+
-      '<span class="pr-name">'+p.name+'</span><span class="pr-pos">'+(POS[p.pos]||p.pos)+'</span>'+
-      '<button class="del-btn" onclick="removePlayer('+i+')">×</button></div>';
+    var posArr=normPos(p); // only valid FIFA keys
+    var chips=posArr.length?posArr.map(function(k){
+      return '<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+k+'</span>';
+    }).join(''):'<span style="font-size:10px;color:var(--text3)">—</span>';
+    var dropItems=POS_GROUPS.map(function(g){
+      return '<div style="margin-bottom:6px">'+
+        '<div style="font-size:9px;color:var(--text3);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">'+g.label+'</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:3px">'+
+        g.keys.map(function(k){
+          var on=posArr.indexOf(k)>=0;
+          return '<button onclick="togglePos('+i+',\''+k+'\')" id="posbtn-'+i+'-'+k+'" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'var(--green)':'var(--border)')+';background:'+(on?'var(--green)':'var(--bg3)')+';color:'+(on?'#fff':'var(--text2)')+';cursor:pointer;font-family:inherit">'+k+'</button>';
+        }).join('')+'</div></div>';
+    }).join('');
+    return '<div class="player-row" style="position:relative">'+
+      '<div class="av">'+p.name.charAt(0)+'</div>'+
+      '<span class="pr-name">'+p.name+'</span>'+
+      '<div id="poschips-'+i+'" style="display:flex;gap:3px;flex-wrap:wrap">'+chips+'</div>'+
+      '<button onclick="togglePosDropdown('+i+')" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>'+
+      '<button class="del-btn" onclick="removePlayer('+i+')">×</button>'+
+      '<div id="posdrop-'+i+'" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh2);padding:10px;min-width:220px">'+
+        dropItems+
+        '<button onclick="closePosDropdown('+i+')" style="width:100%;margin-top:4px;padding:6px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:12px;cursor:pointer;font-family:inherit">Tamam ✓</button>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
+function togglePosDropdown(i){
+  PLAYERS.forEach(function(_,j){if(j!==i)closePosDropdown(j);});
+  var d=document.getElementById('posdrop-'+i);
+  if(d)d.style.display=d.style.display==='none'?'block':'none';
+}
+function closePosDropdown(i){var d=document.getElementById('posdrop-'+i);if(d)d.style.display='none';}
+
+function togglePos(i,key){
+  var posArr=normPos(PLAYERS[i]);
+  var idx=posArr.indexOf(key);
+  if(idx>=0){if(posArr.length===1)return;posArr.splice(idx,1);}
+  else posArr.push(key);
+  PLAYERS[i].pos=posArr;savePlayers();
+  var chipsEl=document.getElementById('poschips-'+i);
+  if(chipsEl)chipsEl.innerHTML=posArr.map(function(k){
+    return '<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+k+'</span>';
+  }).join('');
+  POS_GROUPS.forEach(function(g){g.keys.forEach(function(k){
+    var btn=document.getElementById('posbtn-'+i+'-'+k);if(!btn)return;
+    var on=posArr.indexOf(k)>=0;
+    btn.style.background=on?'var(--green)':'var(--bg3)';
+    btn.style.color=on?'#fff':'var(--text2)';
+    btn.style.borderColor=on?'var(--green)':'var(--border)';
+  });});
+}
+
+
+
 function addPlayer(){
   var name=document.getElementById('newPlayerName').value.trim();
-  var pos=document.getElementById('newPlayerPos').value;
   if(!name)return;
   if(PLAYERS.find(function(p){return p.name===name;})){alert('Bu oyuncu zaten var!');return;}
-  PLAYERS.push({name:name,pos:pos});savePlayers();renderPlayerList();initSelect();buildGoalInputs();
+  PLAYERS.push({name:name,pos:['CM']});savePlayers();renderPlayerList();initSelect();buildGoalInputs();
   document.getElementById('newPlayerName').value='';
 }
 
@@ -915,23 +1010,11 @@ function removePlayer(i){
   PLAYERS.splice(i,1);savePlayers();renderPlayerList();initSelect();buildGoalInputs();
 }
 
-function renderWeightList(){
-  var el=document.getElementById('weightList');if(!el)return;
-  el.innerHTML=CRITERIA.map(function(c,ci){
-    return '<div class="wrow"><span class="wlabel">'+CDISP[ci]+'</span>'+
-      '<input type="range" min="0" max="30" step="1" value="'+WEIGHTS[ci]+'" oninput="updateWeight('+ci+',this.value)">'+
-      '<span class="wval" id="wv-'+ci+'">'+WEIGHTS[ci]+'</span></div>';
-  }).join('');
-  updateTotalWeight();
-}
-
-function updateWeight(ci,val){WEIGHTS[ci]=+val;var el=document.getElementById('wv-'+ci);if(el)el.textContent=val;updateTotalWeight();saveWeights();}
-function updateTotalWeight(){var t=WEIGHTS.reduce(function(a,b){return a+b;},0);var el=document.getElementById('totalWeight');if(el){el.textContent=t;el.style.color=Math.abs(t-100)<5?'#00c853':'#ff6b6b';}}
 
 // ─── PROFİL ─────────────────────────────────────────────────────────────────
 function openProfile(p,data){
   document.getElementById('modalTitle').textContent=p.name+' — Profil';
-  var wAvg=weightedRating(p);
+  var wAvg=simpleRating(p);
   var rating=wAvg!==null?Math.round(wAvg*10):(p.genelOrt?Math.round(p.genelOrt*10):'—');
   var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:'MID'};
   var kOrt={};
@@ -954,7 +1037,7 @@ function openProfile(p,data){
     '<div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">'+
     '<div class="av" style="width:44px;height:44px;font-size:16px">'+p.name.charAt(0)+'</div>'+
     '<div><div style="font-size:26px;font-weight:700;color:var(--green)">'+rating+'</div>'+
-    '<div style="font-size:10px;color:var(--text3)">'+(POS[pObj.pos]||'')+'</div></div></div>'+
+    '<div style="font-size:10px;color:var(--text3)">'+posLabel(pObj)+'</div></div></div>'+
     '<svg viewBox="0 0 190 190" width="100%" style="display:block;margin-bottom:11px">'+gSVG+axes+
     '<polygon points="'+poly+'" fill="#1a6b3c22" stroke="#1a6b3c" stroke-width="1.5"/>'+dots+lbls+'</svg>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'+
@@ -979,7 +1062,7 @@ function showScreen(id){
   if(id==='katilim')renderKatilim();
   if(id==='takim')renderTakim();
   if(id==='mac')loadMatchHistory();
-  if(id==='ayarlar'){renderPlayerList();renderWeightList();}
+  if(id==='ayarlar'){renderPlayerList();}
 }
 
 function san(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
