@@ -69,27 +69,57 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .sub-btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
 /* FIFA KARTLARI */
 .fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-bottom:14px}
-.fc{border-radius:10px;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;display:flex;flex-direction:column;aspect-ratio:.67}
+.fc{border-radius:10px;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:visible;display:flex;flex-direction:column;aspect-ratio:.67}
 .fc:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 16px 36px rgba(0,0,0,.55)}
-.fc-gold{background:linear-gradient(170deg,#6b4a00 0%,#c8a040 30%,#f5d878 50%,#c8a040 70%,#5c3d00 100%);border:1.5px solid #d4a830;box-shadow:0 4px 16px rgba(200,160,64,.45)}
-.fc-gold::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,255,210,.3) 0%,transparent 55%);pointer-events:none}
-.fc-silver{background:linear-gradient(170deg,#2a2a2a 0%,#808080 30%,#d0d0d0 50%,#808080 70%,#1a1a1a 100%);border:1.5px solid #aaa;box-shadow:0 4px 16px rgba(180,180,180,.35)}
-.fc-silver::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,255,255,.25) 0%,transparent 55%);pointer-events:none}
-.fc-bronze{background:linear-gradient(170deg,#3d1a00 0%,#8b4513 30%,#d4872a 50%,#8b4513 70%,#2a0f00 100%);border:1.5px solid #b87030;box-shadow:0 4px 16px rgba(180,110,40,.35)}
-.fc-bronze::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,220,170,.22) 0%,transparent 55%);pointer-events:none}
-.fc-normal{background:linear-gradient(170deg,#0a1628 0%,#162840 35%,#1e3858 50%,#162840 70%,#0a1628 100%);border:1.5px solid #2a4a7a;box-shadow:0 3px 12px rgba(0,0,0,.45)}
-.fc-normal::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(100,160,255,.15) 0%,transparent 55%);pointer-events:none}
+.fc-bg{position:absolute;inset:0;border-radius:10px;overflow:hidden;z-index:0}
+.fc-gold{border:1.5px solid #d4a830;box-shadow:0 4px 16px rgba(200,160,64,.45)}
+.fc-gold .fc-bg{background:linear-gradient(170deg,#6b4a00 0%,#c8a040 30%,#f5d878 50%,#c8a040 70%,#5c3d00 100%)}
+.fc-silver{border:1.5px solid #aaa;box-shadow:0 4px 16px rgba(180,180,180,.35)}
+.fc-silver .fc-bg{background:linear-gradient(170deg,#2a2a2a 0%,#808080 30%,#d0d0d0 50%,#808080 70%,#1a1a1a 100%)}
+.fc-bronze{border:1.5px solid #b87030;box-shadow:0 4px 16px rgba(180,110,40,.35)}
+.fc-bronze .fc-bg{background:linear-gradient(170deg,#3d1a00 0%,#8b4513 30%,#d4872a 50%,#8b4513 70%,#2a0f00 100%)}
+.fc-normal{border:1.5px solid #2a4a7a;box-shadow:0 3px 12px rgba(0,0,0,.45)}
+.fc-normal .fc-bg{background:linear-gradient(170deg,#0a1628 0%,#162840 35%,#1e3858 50%,#162840 70%,#0a1628 100%)}
 /* Üst alan */
-.fc-top{display:flex;justify-content:space-between;padding:8px 9px 0;position:relative;z-index:1;flex-shrink:0}
+.fc-top{display:flex;justify-content:space-between;padding:8px 9px 0;position:relative;z-index:3;flex-shrink:0}
 .fc-rating{font-size:28px;font-weight:900;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,.4)}
 .fc-pos-tag{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
 .fc-icons{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px}
 /* Fotoğraf — kartın büyük kısmı */
-.fc-photo{flex:1;position:relative;overflow:hidden;margin:4px 0}
-.fc-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+/* Fotoğraf — transparan PNG için kart sınırını aşar */
+.fc-photo{
+  flex:1;
+  position:relative;
+  overflow:visible;
+  margin:0 -8px;
+  min-height:90px;
+}
+.fc-photo img{
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:115%;
+  height:140%;
+  object-fit:contain;
+  object-position:bottom center;
+  z-index:2;
+  pointer-events:none;
+}
+.fc-photo-ph{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:44px;
+  font-weight:900;
+  opacity:.6;
+  z-index:2;
+}
 .fc-photo-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;opacity:.6}
 /* Alt bölge */
-.fc-bottom{padding:4px 6px 6px;position:relative;z-index:1;flex-shrink:0;background:rgba(0,0,0,.15)}
+.fc-bottom{padding:4px 6px 6px;position:relative;z-index:3;flex-shrink:0;background:rgba(0,0,0,.15)}
 .fc-name{text-align:center;font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 .fc-sep{height:1px;margin:0 4px 4px;opacity:.35}
 .fc-stats{display:flex;gap:0}
@@ -393,22 +423,22 @@ var PLAYERS=JSON.parse(localStorage.getItem('hs_players')||'null')||[
 var BASE_URL='https://www.yagserakgun.com/players/';
 // Oyuncu fotoğraf dosyaları — GitHub /public/players/ klasörüne yükle
 var PLAYER_PHOTOS={
-  'Ahmet':      'ahmet.jpeg',
-  'Eren':       'eren.jpeg',
-  'Nail':       'nail.jpeg',
-  'Oguz':       'oguz.jpeg',
-  'Bugay':      'bugay.jpeg',
-  'Yagser':     'yagser.jpeg',
-  'Cemalettin': 'cemalettin.jpeg',
-  'Edip':       'edip.jpeg',
-  'Mustafa':    'mustafa.jpeg',
-  'Marwan':     'marwan.jpeg',
-  'Ugur':       'ugur.jpeg',
-  'Atay':       'atay.jpeg',
-  'Baris':      'baris.jpeg',
-  'Burak':      'burak.jpeg',
-  'Ahmet Gedik':'ahmetgedik.jpeg',
-  'Orhan Abi':  'orhanabi.jpeg'
+  'Ahmet':      'ahmet.png',
+  'Eren':       'eren.png',
+  'Nail':       'nail.png',
+  'Oguz':       'oguz.png',
+  'Bugay':      'bugay.png',
+  'Yagser':     'yagser.png',
+  'Cemalettin': 'cemalettin.png',
+  'Edip':       'edip.png',
+  'Mustafa':    'mustafa.png',
+  'Marwan':     'marwan.png',
+  'Ugur':       'ugur.png',
+  'Atay':       'atay.png',
+  'Baris':      'baris.png',
+  'Burak':      'burak.png',
+  'Ahmet Gedik':'ahmetgedik.png',
+  'Orhan Abi':  'orhanabi.png'
 };
 var CRITERIA=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik','Takim Oyunu'];
 var CDISP=['Pas','Şut','Drib.','Savunma','Hız','Fizik','Takım'];
@@ -788,6 +818,7 @@ function makeFifaCard(p, pObj, rank, data){
   var card=document.createElement('div');
   card.className='fc '+cls;
   card.innerHTML=
+    '<div class="fc-bg"></div>'+
     (rankBadge?'<div class="fc-badge">'+rankBadge+'</div>':'')+
     // ÜST: Rating + Mevki (sol) | İkonlar (sağ)
     '<div class="fc-top">'+
@@ -1461,7 +1492,7 @@ function openProfile(p,data){
   var dots=pts.map(function(pt){return'<circle cx="'+pt.x+'" cy="'+pt.y+'" r="3" fill="#1a6b3c"/>';}).join('');
   var profilePhoto=getPlayerPhoto(p.name);
   var profileAvatar=profilePhoto
-    ?'<div style="width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--green)"><img src="'+profilePhoto+'" style="width:100%;height:100%;object-fit:cover;object-position:top center" onerror="this.style.display=\'none\'"></div>'
+    ?'<div style="width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--green);background:#f5f5f5"><img src="'+profilePhoto+'" style="width:100%;height:100%;object-fit:contain;object-position:center" onerror="this.style.display=\'none\'"></div>'
     :'<div class="av" style="width:60px;height:60px;font-size:20px;flex-shrink:0">'+p.name.charAt(0)+'</div>';
   document.getElementById('modalBody').innerHTML=
     '<div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">'+
