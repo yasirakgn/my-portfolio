@@ -68,29 +68,37 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .sub-btn{background:var(--green);color:#fff;border:none;border-radius:var(--rs);padding:12px 44px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(26,107,60,.3);font-family:inherit}
 .sub-btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
 /* FIFA KARTLARI */
-.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:14px}
-.fc{border-radius:14px;padding:12px 10px 10px;text-align:center;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
-.fc:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,.4)}
-/* Kart tipleri */
-.fc-gold{background:linear-gradient(160deg,#3d2c00,#6b4a00,#3d2c00);border:1px solid #c8a84b;box-shadow:0 3px 12px rgba(200,168,75,.3)}
-.fc-silver{background:linear-gradient(160deg,#1e1e1e,#3a3a3a,#1e1e1e);border:1px solid #9e9e9e;box-shadow:0 3px 12px rgba(158,158,158,.25)}
-.fc-bronze{background:linear-gradient(160deg,#2a1500,#5c3200,#2a1500);border:1px solid #cd7f32;box-shadow:0 3px 12px rgba(205,127,50,.25)}
-.fc-normal{background:linear-gradient(160deg,#0d1b2a,#1a2f45,#0d1b2a);border:1px solid #2a4a6a;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-/* Kart içeriği */
-.fc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.fc-rating{font-size:28px;font-weight:900;line-height:1}
-.fc-pos-tag{font-size:10px;font-weight:700;letter-spacing:1px;margin-top:2px}
-.fc-flag{font-size:18px}
-.fc-avatar{width:64px;height:64px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;overflow:hidden;position:relative}
-.fc-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:7px;letter-spacing:.5px}
-.fc-divider{height:1px;margin:0 -10px 7px;opacity:.3}
-.fc-stats{display:grid;grid-template-columns:1fr 1fr;gap:3px}
-.fc-stat{display:flex;align-items:center;gap:4px;padding:2px 4px}
-.fc-stat-val{font-size:12px;font-weight:800;min-width:18px;text-align:right}
-.fc-stat-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);overflow:hidden}
-.fc-stat-fill{height:100%;border-radius:2px}
-.fc-stat-lbl{font-size:8px;font-weight:600;letter-spacing:.5px;min-width:24px;text-align:left;opacity:.7}
-.fc-badge{position:absolute;top:7px;right:7px;font-size:11px}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-bottom:14px}
+.fc{border-radius:10px;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;display:flex;flex-direction:column;aspect-ratio:.67}
+.fc:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 16px 36px rgba(0,0,0,.55)}
+.fc-gold{background:linear-gradient(170deg,#6b4a00 0%,#c8a040 30%,#f5d878 50%,#c8a040 70%,#5c3d00 100%);border:1.5px solid #d4a830;box-shadow:0 4px 16px rgba(200,160,64,.45)}
+.fc-gold::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,255,210,.3) 0%,transparent 55%);pointer-events:none}
+.fc-silver{background:linear-gradient(170deg,#2a2a2a 0%,#808080 30%,#d0d0d0 50%,#808080 70%,#1a1a1a 100%);border:1.5px solid #aaa;box-shadow:0 4px 16px rgba(180,180,180,.35)}
+.fc-silver::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,255,255,.25) 0%,transparent 55%);pointer-events:none}
+.fc-bronze{background:linear-gradient(170deg,#3d1a00 0%,#8b4513 30%,#d4872a 50%,#8b4513 70%,#2a0f00 100%);border:1.5px solid #b87030;box-shadow:0 4px 16px rgba(180,110,40,.35)}
+.fc-bronze::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(255,220,170,.22) 0%,transparent 55%);pointer-events:none}
+.fc-normal{background:linear-gradient(170deg,#0a1628 0%,#162840 35%,#1e3858 50%,#162840 70%,#0a1628 100%);border:1.5px solid #2a4a7a;box-shadow:0 3px 12px rgba(0,0,0,.45)}
+.fc-normal::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 35% 15%,rgba(100,160,255,.15) 0%,transparent 55%);pointer-events:none}
+/* Üst alan */
+.fc-top{display:flex;justify-content:space-between;padding:8px 9px 0;position:relative;z-index:1;flex-shrink:0}
+.fc-rating{font-size:28px;font-weight:900;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,.4)}
+.fc-pos-tag{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.fc-icons{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px}
+/* Fotoğraf — kartın büyük kısmı */
+.fc-photo{flex:1;position:relative;overflow:hidden;margin:4px 0}
+.fc-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.fc-photo-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;opacity:.6}
+/* Alt bölge */
+.fc-bottom{padding:4px 6px 6px;position:relative;z-index:1;flex-shrink:0;background:rgba(0,0,0,.15)}
+.fc-name{text-align:center;font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.fc-sep{height:1px;margin:0 4px 4px;opacity:.35}
+.fc-stats{display:flex;gap:0}
+.fc-stats-col{flex:1;display:flex;flex-direction:column;gap:1px}
+.fc-stats-div{width:1px;margin:0 4px;opacity:.3;background:currentColor}
+.fc-stat{display:flex;align-items:center;gap:3px;padding:1px 2px}
+.fc-stat-val{font-size:10px;font-weight:900;min-width:17px;text-align:right;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.fc-stat-lbl{font-size:7px;font-weight:700;letter-spacing:.8px;opacity:.72;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.fc-badge{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:14px;z-index:3}
 /* Sıralama sekmeleri */
 .rank-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
 .rank-tab{padding:5px 12px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
@@ -753,43 +761,56 @@ function makeFifaCard(p, pObj, rank, data){
   var consIcon=stdDev<0.8?'🎯':stdDev<1.5?'📊':'⚡';
   var rankBadge=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
   var photoUrl=getPlayerPhoto(p.name);
+
+  // Sol 3 stat, sağ 3 stat — FIFA düzeni
   var statKeys=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik'];
   var statLabels=['PAS','ŞUT','DRB','SAV','HIZ','FİZ'];
-  var statsHTML=statKeys.map(function(c,ci){
+  var statVals=statKeys.map(function(c){
     var vals=[];
     if(p.weeklyKriterler)Object.values(p.weeklyKriterler).forEach(function(wk){if(wk&&wk[c]!=null)vals.push(+wk[c]);});
-    var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
-    var scaled=Math.round(avg*10);
-    var pct=(avg/10*100).toFixed(0);
-    return '<div class="fc-stat">'+
-      '<span class="fc-stat-val" style="color:'+col.text+'">'+scaled+'</span>'+
-      '<div class="fc-stat-bar"><div class="fc-stat-fill" style="width:'+pct+'%;background:'+col.bar+'"></div></div>'+
-      '<span class="fc-stat-lbl" style="color:'+col.text+'99">'+statLabels[ci]+'</span>'+
-    '</div>';
-  }).join('');
+    return vals.length?Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length*10):0;
+  });
 
-  var avatarHTML=photoUrl
-    ?'<img src="'+photoUrl+'" style="width:100%;height:100%;object-fit:cover;object-position:top center;position:absolute;inset:0;" onerror="this.style.display=\'none\'">'
-    :'<span style="color:'+col.text+'">'+p.name.charAt(0)+'</span>';
+  function statRow(ci){
+    return '<div class="fc-stat">'+
+      '<span class="fc-stat-val" style="color:'+col.text+'">'+statVals[ci]+'</span>'+
+      '<span class="fc-stat-lbl" style="color:'+col.text+'bb">'+statLabels[ci]+'</span>'+
+    '</div>';
+  }
+
+  var col1=statRow(0)+statRow(1)+statRow(2);
+  var col2=statRow(3)+statRow(4)+statRow(5);
+
+  var photoHTML=photoUrl
+    ?'<img src="'+photoUrl+'" onerror="this.outerHTML=\'<div class=fc-photo-ph style=color:'+col.text+'>'+p.name.charAt(0)+'</div>\'">'
+    :'<div class="fc-photo-ph" style="color:'+col.text+'">'+p.name.charAt(0)+'</div>';
 
   var card=document.createElement('div');
   card.className='fc '+cls;
   card.innerHTML=
     (rankBadge?'<div class="fc-badge">'+rankBadge+'</div>':'')+
+    // ÜST: Rating + Mevki (sol) | İkonlar (sağ)
     '<div class="fc-top">'+
       '<div>'+
         '<div class="fc-rating" style="color:'+col.text+'">'+rating+'</div>'+
-        '<div class="fc-pos-tag" style="color:'+col.text+'aa">'+posName+'</div>'+
+        '<div class="fc-pos-tag" style="color:'+col.text+'cc">'+posName+'</div>'+
       '</div>'+
-      '<div style="text-align:right;line-height:1.4">'+
-        '<div style="font-size:14px">'+consIcon+'</div>'+
-        (formEmoji?'<div style="font-size:12px">'+formEmoji+'</div>':'')+
+      '<div class="fc-icons" style="color:'+col.text+'">'+
+        consIcon+(formEmoji?'<span style="font-size:11px">'+formEmoji+'</span>':'')+
       '</div>'+
     '</div>'+
-    '<div class="fc-avatar" style="background:'+avatarBg(rating)+'">'+avatarHTML+'</div>'+
-    '<div class="fc-name">'+p.name+'</div>'+
-    '<div class="fc-divider" style="background:'+col.text+'"></div>'+
-    '<div class="fc-stats">'+statsHTML+'</div>';
+    // FOTO — büyük alan
+    '<div class="fc-photo">'+photoHTML+'</div>'+
+    // ALT: İsim + İstatistikler
+    '<div class="fc-bottom">'+
+      '<div class="fc-name" style="color:'+col.text+'">'+p.name.toUpperCase()+'</div>'+
+      '<div class="fc-sep" style="background:'+col.text+'"></div>'+
+      '<div class="fc-stats" style="color:'+col.text+'">'+
+        '<div class="fc-stats-col">'+col1+'</div>'+
+        '<div class="fc-stats-div" style="background:'+col.text+'"></div>'+
+        '<div class="fc-stats-col">'+col2+'</div>'+
+      '</div>'+
+    '</div>';
   card.onclick=(function(pl,d){return function(){openProfile(pl,d);};})(p,data);
   return card;
 }
