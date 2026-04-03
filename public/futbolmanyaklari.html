@@ -352,18 +352,17 @@ var POS_WEIGHTS={
 };
 
 function normPos(p){
-  var arr=Array.isArray(p.pos)?p.pos:[p.pos];
+  var arr=Array.isArray(p.pos)?p.pos:[p.pos||''];
+  // Geçerli yeni mevkileri filtrele
   var valid=arr.filter(function(k){return VALID_POS.indexOf(k)>=0;});
-  // Eski mevki kodlarını yeni sisteme dönüştür
-  if(!valid.length){
-    var old=arr[0]||'';
-    if(old==='GK'||old==='KL'||old==='SW')return['KL'];
-    if(['CB','RB','LB','RWB','LWB','STP','SAB','SOB','SABK','SOBK'].indexOf(old)>=0)return['DEF'];
-    if(['CDM','CM','CAM','RM','LM','DMO','AMO','SAO','SOO','OMO2'].indexOf(old)>=0)return['OMO'];
-    if(['ST','CF','RW','LW','SS','SAN','FW','IKF','SKT','SOKT'].indexOf(old)>=0)return['FRV'];
-    return['OMO']; // varsayılan
-  }
-  return valid;
+  if(valid.length)return[valid[0]]; // tek mevki
+  // Eski kodları dönüştür
+  var old=arr[0]||'';
+  if(old==='GK'||old==='KL'||old==='SW')return['KL'];
+  if(['CB','RB','LB','RWB','LWB','STP','SAB','SOB','SABK','SOBK'].indexOf(old)>=0)return['DEF'];
+  if(['CDM','CM','CAM','RM','LM','DMO','AMO','SAO','SOO'].indexOf(old)>=0)return['OMO'];
+  if(['ST','CF','RW','LW','SS','SAN','FW','IKF','SKT','SOKT','FRV'].indexOf(old)>=0)return['FRV'];
+  return['OMO'];
 }
 
 function getPosGroup(p){return normPos(p)[0]||'OMO';}
@@ -1015,31 +1014,58 @@ function renderTeams(t1,t2){
 function renderPlayerList(){
   var el=document.getElementById('playerList');if(!el)return;
   el.innerHTML=PLAYERS.map(function(p,i){
-    var posArr=normPos(p); // only valid FIFA keys
-    var chips=posArr.length?posArr.map(function(k){
-      return '<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+k+'</span>';
-    }).join(''):'<span style="font-size:10px;color:var(--text3)">—</span>';
+    var posArr=normPos(p);
+    var curPos=posArr.length?posArr[0]:null; // tek mevki
+    var chip=curPos?'<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+POS[curPos]+'</span>':'<span style="font-size:10px;color:var(--text3)">—</span>';
     var dropItems=POS_GROUPS.map(function(g){
       return '<div style="margin-bottom:6px">'+
         '<div style="font-size:9px;color:var(--text3);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">'+g.label+'</div>'+
         '<div style="display:flex;flex-wrap:wrap;gap:3px">'+
         g.keys.map(function(k){
-          var on=posArr.indexOf(k)>=0;
-          return '<button onclick="togglePos('+i+',\''+k+'\')" id="posbtn-'+i+'-'+k+'" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'var(--green)':'var(--border)')+';background:'+(on?'var(--green)':'var(--bg3)')+';color:'+(on?'#fff':'var(--text2)')+';cursor:pointer;font-family:inherit">'+k+'</button>';
+          var on=k===curPos;
+          return '<button onclick="selectPos('+i+',\''+k+'\')" id="posbtn-'+i+'-'+k+'" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'var(--green)':'var(--border)')+';background:'+(on?'var(--green)':'var(--bg3)')+';color:'+(on?'#fff':'var(--text2)')+';cursor:pointer;font-family:inherit">'+POS[k]+'</button>';
         }).join('')+'</div></div>';
     }).join('');
     return '<div class="player-row" style="position:relative">'+
       '<div class="av">'+p.name.charAt(0)+'</div>'+
       '<span class="pr-name">'+p.name+'</span>'+
-      '<div id="poschips-'+i+'" style="display:flex;gap:3px;flex-wrap:wrap">'+chips+'</div>'+
+      '<div id="poschips-'+i+'" style="display:flex;gap:3px;flex-wrap:wrap">'+chip+'</div>'+
       '<button onclick="togglePosDropdown('+i+')" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;flex-shrink:0">✏️</button>'+
       '<button class="del-btn" onclick="removePlayer('+i+')">×</button>'+
-      '<div id="posdrop-'+i+'" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh2);padding:10px;min-width:220px">'+
+      '<div id="posdrop-'+i+'" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh2);padding:10px;min-width:240px">'+
         dropItems+
-        '<button onclick="closePosDropdown('+i+')" style="width:100%;margin-top:4px;padding:6px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:12px;cursor:pointer;font-family:inherit">Tamam ✓</button>'+
+        '<button onclick="confirmPos('+i+')" style="width:100%;margin-top:6px;padding:7px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Tamam — Kaydet ✓</button>'+
       '</div>'+
     '</div>';
   }).join('');
+}
+
+// Geçici seçim — henüz kaydedilmez
+var _pendingPos={};
+function selectPos(i,key){
+  _pendingPos[i]=key;
+  // Tüm butonları güncelle
+  POS_GROUPS.forEach(function(g){g.keys.forEach(function(k){
+    var btn=document.getElementById('posbtn-'+i+'-'+k);if(!btn)return;
+    var on=k===key;
+    btn.style.background=on?'var(--green)':'var(--bg3)';
+    btn.style.color=on?'#fff':'var(--text2)';
+    btn.style.borderColor=on?'var(--green)':'var(--border)';
+  });});
+}
+
+// Tamam butonuna basınca kaydet
+function confirmPos(i){
+  var key=_pendingPos[i];
+  if(!key){closePosDropdown(i);return;}
+  PLAYERS[i].pos=[key];
+  savePlayers();
+  saveMevkiToSheets(PLAYERS[i].name,[key]);
+  // Chip güncelle
+  var chipsEl=document.getElementById('poschips-'+i);
+  if(chipsEl)chipsEl.innerHTML='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+POS[key]+'</span>';
+  delete _pendingPos[i];
+  closePosDropdown(i);
 }
 
 function togglePosDropdown(i){
@@ -1047,27 +1073,9 @@ function togglePosDropdown(i){
   var d=document.getElementById('posdrop-'+i);
   if(d)d.style.display=d.style.display==='none'?'block':'none';
 }
-function closePosDropdown(i){var d=document.getElementById('posdrop-'+i);if(d)d.style.display='none';}
-
-function togglePos(i,key){
-  var posArr=normPos(PLAYERS[i]);
-  var idx=posArr.indexOf(key);
-  if(idx>=0){if(posArr.length===1)return;posArr.splice(idx,1);}
-  else posArr.push(key);
-  PLAYERS[i].pos=posArr;savePlayers();
-  // Sheets'e kaydet
-  saveMevkiToSheets(PLAYERS[i].name, posArr);
-  var chipsEl=document.getElementById('poschips-'+i);
-  if(chipsEl)chipsEl.innerHTML=posArr.map(function(k){
-    return '<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+k+'</span>';
-  }).join('');
-  POS_GROUPS.forEach(function(g){g.keys.forEach(function(k){
-    var btn=document.getElementById('posbtn-'+i+'-'+k);if(!btn)return;
-    var on=posArr.indexOf(k)>=0;
-    btn.style.background=on?'var(--green)':'var(--bg3)';
-    btn.style.color=on?'#fff':'var(--text2)';
-    btn.style.borderColor=on?'var(--green)':'var(--border)';
-  });});
+function closePosDropdown(i){
+  var d=document.getElementById('posdrop-'+i);if(d)d.style.display='none';
+  delete _pendingPos[i]; // iptal
 }
 
 
