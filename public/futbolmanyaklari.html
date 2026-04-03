@@ -308,10 +308,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
   <div class="rank-tabs">
     <button class="rank-tab active" onclick="setRankTab('genel',this)">🏆 Genel</button>
-    <button class="rank-tab" onclick="setRankTab('kaleci',this)">🧤 Kaleci</button>
-    <button class="rank-tab" onclick="setRankTab('defans',this)">🛡️ Defans</button>
-    <button class="rank-tab" onclick="setRankTab('orta',this)">⚙️ Orta</button>
-    <button class="rank-tab" onclick="setRankTab('forvet',this)">⚡ Forvet</button>
+    <button class="rank-tab" onclick="setRankTab('kaleci',this)">🧤 Kaleci Skoru</button>
+    <button class="rank-tab" onclick="setRankTab('defans',this)">🛡️ Defans Skoru</button>
+    <button class="rank-tab" onclick="setRankTab('orta',this)">⚙️ Orta Skoru</button>
+    <button class="rank-tab" onclick="setRankTab('forvet',this)">⚡ Forvet Skoru</button>
     <button class="rank-tab" onclick="setRankTab('11',this)">⚽ 11'lik</button>
   </div>
   <div id="fifaGrid" class="fg"></div>
@@ -778,8 +778,8 @@ function getPlayerPhoto(name){
 }
 
 // ─── FIFA KARTI ──────────────────────────────────────────────────────────────
-function makeFifaCard(p, pObj, rank, data){
-  var wAvg=posRating(p,pObj);
+function makeFifaCard(p, pObj, rank, data, overrideScore){
+  var wAvg=overrideScore!==undefined?overrideScore:posRating(p,pObj);
   var rating=wAvg!==null?Math.min(99,Math.round(wAvg*10)):Math.round((p.genelOrt||0)*10);
   var stdDev=calcStdDev(p);
   var posArr=normPos(pObj);
@@ -887,20 +887,33 @@ function renderRankTab(data){
   if(currentRankTab==='11'){render11lik(data);return;}
   grid.className='fg';grid.style.marginBottom='12px';
   grid.innerHTML='';nd.style.display='none';
-  var posFilter={kaleci:'KL',defans:'DEF',orta:'OMO',forvet:'FRV'}[currentRankTab];
+
+  // Sekmeye göre hangi mevki ağırlıkları kullanılacak
+  var tabPos={kaleci:'KL',defans:'DEF',orta:'OMO',forvet:'FRV'}[currentRankTab];
+
   var players=data.players.filter(function(p){return p.genelOrt!==null;});
-  if(posFilter){
-    players=players.filter(function(p){
-      var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
-      return normPos(pObj)[0]===posFilter;
-    });
-  }
+
   var sorted=players.map(function(p){
     var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
-    return{p:p,pObj:pObj,score:posRating(p,pObj)||0};
+    var score;
+    if(tabPos){
+      // O sekmenin ağırlıklarıyla hesapla — oyuncunun gerçek mevkinden bağımsız
+      var fakeObj={pos:[tabPos]};
+      score=posRating(p,fakeObj)||0;
+    } else {
+      // Genel: kendi mevkiyle hesapla
+      score=posRating(p,pObj)||0;
+    }
+    return{p:p,pObj:pObj,score:score,tabPos:tabPos};
   }).sort(function(a,b){return b.score-a.score;});
+
   if(!sorted.length){nd.style.display='block';return;}
-  sorted.forEach(function(item,i){grid.appendChild(makeFifaCard(item.p,item.pObj,i,data));});
+
+  sorted.forEach(function(item,i){
+    // Kart görüntüsü için pObj olarak tabPos kullanan bir wrapper ver
+    var displayObj=item.tabPos?{pos:[item.tabPos]}:item.pObj;
+    grid.appendChild(makeFifaCard(item.p,displayObj,i,data,item.score));
+  });
 }
 
 // ─── HAFTANIN 11'İ ───────────────────────────────────────────────────────────
