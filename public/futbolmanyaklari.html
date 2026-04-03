@@ -640,12 +640,42 @@ function loadResults(cb){
   gs({action:'getResults'}).then(function(d){resultData=d;cb(d);}).catch(function(){cb(null);});
 }
 
-function loadResults(cb){
+function getFormBadge(p){
+  var genels=p.weeklyGenels.filter(function(v){return v!=null;});
+  if(genels.length<2)return'';
+  var last=genels.slice(-3);
+  if(last.length<2)return'';
+  var diff=last[last.length-1]-last[0];
+  if(diff>0.3)return'<span style="font-size:10px;background:#00c85322;color:#00c853;border:1px solid #00c85344;border-radius:10px;padding:2px 6px">🔥 Formda</span>';
+  if(diff<-0.3)return'<span style="font-size:10px;background:#ff444422;color:#ff4444;border:1px solid #ff444444;border-radius:10px;padding:2px 6px">📉 Düşüşte</span>';
+  return'<span style="font-size:10px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:10px;padding:2px 6px">➡️ Stabil</span>';
+}
+
+function renderSonuc(){
   var grid=document.getElementById('fifaGrid'),nd=document.getElementById('noDataSonuc');
   grid.innerHTML='<div class="no-data"><span class="spin"></span>Yükleniyor...</div>';nd.style.display='none';
   loadResults(function(data){
     grid.innerHTML='';
     if(!data||!data.players){nd.style.display='block';return;}
+
+    // Katılım bilgisi — son haftaya göre kim puan verdi
+    if(data.weeks&&data.weeks.length){
+      var lastWeek=data.weeks[data.weeks.length-1];
+      var wi=data.weeks.length-1;
+      var ratedThisWeek=data.players.filter(function(p){return p.weeklyGenels[wi]!=null;}).map(function(p){return p.name;});
+      var notRated=PLAYERS.map(function(p){return p.name;}).filter(function(n){return ratedThisWeek.indexOf(n)<0;});
+      var bar=document.getElementById('participationBar');
+      var cnt=document.getElementById('participationCount');
+      var lst=document.getElementById('participationList');
+      var mis=document.getElementById('missingList');
+      if(bar)bar.style.display='block';
+      if(cnt)cnt.textContent=ratedThisWeek.length+' / '+PLAYERS.length+' kişi ('+lastWeek+')';
+      if(lst)lst.innerHTML=ratedThisWeek.map(function(n){
+        return '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">✓ '+n+'</span>';
+      }).join('');
+      if(mis)mis.innerHTML=notRated.length?'Henüz puan vermedi: <b>'+notRated.join(', ')+'</b>':'';
+    }
+
     var sorted=data.players.filter(function(p){return p.genelOrt!==null;});
     if(!sorted.length){nd.style.display='block';return;}
     sorted.forEach(function(p,i){
@@ -653,7 +683,9 @@ function loadResults(cb){
       var wAvg=posRating(p,pObj);
       var rating=wAvg!==null?Math.min(99,Math.round(wAvg*10)):Math.round((p.genelOrt||0)*10);
       var mc=i===0?'m1':i===1?'m2':i===2?'m3':'';
-      
+      var posArr=normPos(pObj);
+      var posLbl=posArr.length?POS[posArr[0]]||posArr[0]:'';
+      var formBadge=getFormBadge(p);
       var st=CRITERIA.slice(0,6).map(function(c,ci){
         var vals=[];if(p.weeklyKriterler)Object.values(p.weeklyKriterler).forEach(function(wk){if(wk&&wk[c]!=null)vals.push(wk[c]);});
         var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
@@ -664,7 +696,9 @@ function loadResults(cb){
         '<div><div class="fc-r">'+rating+'</div><div class="fc-pl">'+(i===0?'MVP':i<3?'STAR':'MID')+'</div></div>'+
         '<div style="font-size:14px">'+(MEDALS[i]||'')+'</div></div>'+
         '<div class="fc-av">'+p.name.charAt(0)+'</div>'+
-        '<div class="fc-nm">'+p.name+'</div><div class="fc-pt">'+(POS[pObj.pos]||'')+'</div>'+
+        '<div class="fc-nm">'+p.name+'</div>'+
+        '<div class="fc-pt">'+posLbl+'</div>'+
+        '<div style="margin-bottom:3px">'+formBadge+'</div>'+
         '<div class="fc-st">'+st+'</div>';
       card.onclick=(function(pl,d){return function(){openProfile(pl,d);};})(p,data);
       grid.appendChild(card);
