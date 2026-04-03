@@ -67,22 +67,49 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .submit-area{text-align:center;margin-top:13px}
 .sub-btn{background:var(--green);color:#fff;border:none;border-radius:var(--rs);padding:12px 44px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(26,107,60,.3);font-family:inherit}
 .sub-btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
-/* FIFA */
-.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin-bottom:12px}
-.fc{border-radius:12px;padding:9px 7px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1px solid #333;background:linear-gradient(145deg,#1a1a2e,#16213e);box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.fc:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.3)}
-.fc-r{font-size:21px;font-weight:700;color:#f0c040;line-height:1}
-.fc-pl{font-size:8px;color:#f0c04099;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
-.fc-av{width:40px;height:40px;border-radius:50%;background:#ffffff15;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff}
-.fc-nm{font-size:10px;font-weight:600;color:#fff;margin-bottom:3px}
-.fc-pt{font-size:8px;color:#ffffffaa;margin-bottom:5px}
-.fc-st{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px}
-.fc-s{font-size:9px;color:#ffffffbb;text-align:center}
-.fc-s b{display:block;font-size:11px;color:#f0c040;font-weight:700}
-.m1{background:linear-gradient(145deg,#2a1a00,#3d2600)!important;border-color:#f0c04060!important}
-.m2{background:linear-gradient(145deg,#1a1a1a,#2a2a2a)!important;border-color:#c0c0c060!important}
-.m3{background:linear-gradient(145deg,#1a0d00,#2e1800)!important;border-color:#cd7f3260!important}
-/* MODAL */
+/* FIFA KARTLARI */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.fc{border-radius:14px;padding:12px 10px 10px;text-align:center;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.fc:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,.4)}
+/* Kart tipleri */
+.fc-gold{background:linear-gradient(160deg,#3d2c00,#6b4a00,#3d2c00);border:1px solid #c8a84b;box-shadow:0 3px 12px rgba(200,168,75,.3)}
+.fc-silver{background:linear-gradient(160deg,#1e1e1e,#3a3a3a,#1e1e1e);border:1px solid #9e9e9e;box-shadow:0 3px 12px rgba(158,158,158,.25)}
+.fc-bronze{background:linear-gradient(160deg,#2a1500,#5c3200,#2a1500);border:1px solid #cd7f32;box-shadow:0 3px 12px rgba(205,127,50,.25)}
+.fc-normal{background:linear-gradient(160deg,#0d1b2a,#1a2f45,#0d1b2a);border:1px solid #2a4a6a;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+/* Kart içeriği */
+.fc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.fc-rating{font-size:28px;font-weight:900;line-height:1}
+.fc-pos-tag{font-size:10px;font-weight:700;letter-spacing:1px;margin-top:2px}
+.fc-flag{font-size:18px}
+.fc-avatar{width:52px;height:52px;border-radius:50%;margin:0 auto 7px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+.fc-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:7px;letter-spacing:.5px}
+.fc-divider{height:1px;margin:0 -10px 7px;opacity:.3}
+.fc-stats{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.fc-stat{display:flex;align-items:center;gap:4px;padding:2px 4px}
+.fc-stat-val{font-size:12px;font-weight:800;min-width:18px;text-align:right}
+.fc-stat-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.15);overflow:hidden}
+.fc-stat-fill{height:100%;border-radius:2px}
+.fc-stat-lbl{font-size:8px;font-weight:600;letter-spacing:.5px;min-width:24px;text-align:left;opacity:.7}
+.fc-badge{position:absolute;top:7px;right:7px;font-size:11px}
+/* Sıralama sekmeleri */
+.rank-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.rank-tab{padding:5px 12px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+.rank-tab.active{background:var(--green);border-color:var(--green);color:#fff}
+/* 11'lik */
+.field{background:linear-gradient(180deg,#1a4a1a,#0d2d0d);border-radius:12px;padding:16px 10px;margin-bottom:12px;position:relative;overflow:hidden}
+.field::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(255,255,255,.06) 49px,rgba(255,255,255,.06) 50px);pointer-events:none}
+.field-row{display:flex;justify-content:center;gap:8px;margin-bottom:12px}
+.field-player{text-align:center;min-width:60px}
+.field-av{width:38px;height:38px;border-radius:50%;margin:0 auto 3px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,.4)}
+.field-name{font-size:9px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px}
+.field-rating{font-size:10px;font-weight:800}
+/* Takım */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tbox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;box-shadow:var(--sh)}
+.tbox h3{font-size:12px;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border2);color:var(--green)}
+.tplayer{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border2)}
+.tplayer:last-child{border-bottom:none}
+.tscore{font-weight:600;color:var(--green)}
 .mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:center;justify-content:center}
 .mbg.open{display:flex}
 .modal{background:var(--bg2);border-radius:var(--r);padding:18px;max-width:400px;width:94%;box-shadow:var(--sh2);border:1px solid var(--border);max-height:90vh;overflow-y:auto}
@@ -233,7 +260,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <!-- SONUÇ -->
 <div id="screen-sonuc" class="screen">
-  <div class="sec-title">Genel Sıralama</div>
+  <div id="participationBar" class="card" style="display:none;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="slabel" style="margin:0">Bu Hafta Puan Verenler</div>
+      <span id="participationCount" style="font-size:13px;font-weight:700;color:var(--green)"></span>
+    </div>
+    <div id="participationList" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px"></div>
+    <div id="missingList" style="font-size:11px;color:var(--text3)"></div>
+  </div>
+  <div class="rank-tabs">
+    <button class="rank-tab active" onclick="setRankTab('genel',this)">🏆 Genel</button>
+    <button class="rank-tab" onclick="setRankTab('kaleci',this)">🧤 Kaleci</button>
+    <button class="rank-tab" onclick="setRankTab('defans',this)">🛡️ Defans</button>
+    <button class="rank-tab" onclick="setRankTab('orta',this)">⚙️ Orta</button>
+    <button class="rank-tab" onclick="setRankTab('forvet',this)">⚡ Forvet</button>
+    <button class="rank-tab" onclick="setRankTab('11',this)">⚽ 11'lik</button>
+  </div>
   <div id="fifaGrid" class="fg"></div>
   <div id="noDataSonuc" class="no-data" style="display:none">Henüz puan girilmedi.</div>
 </div>
@@ -283,14 +325,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <!-- TAKIM -->
 <div id="screen-takim" class="screen">
-  <div class="sec-title">Dengeli Takım</div>
-  <div style="margin-bottom:10px">
-    <button class="abtn pri" onclick="buildTeams()">Takımları Oluştur</button>
-    <button class="abtn" onclick="shuffleTeams()">🔀 Karıştır</button>
+  <div class="sec-title">Akıllı Takım Oluşturucu</div>
+  <div class="card">
+    <div class="slabel" style="margin-bottom:8px">Bugün kimler var?</div>
+    <div id="todayPlayers" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="abtn" onclick="selectAllPlayers()">Tümünü Seç</button>
+      <button class="abtn" onclick="clearAllPlayers()">Temizle</button>
+      <button class="abtn pri" onclick="buildTeams()">⚡ Takım Kur</button>
+      <button class="abtn" onclick="shuffleTeams()">🔀 Karıştır</button>
+    </div>
   </div>
   <div id="balanceInfo" style="margin-bottom:10px"></div>
   <div id="teamResult"></div>
-  <div id="noDataTakim" class="no-data">Önce sonuçlar yüklenmeli.</div>
+  <div id="noDataTakim" class="no-data" style="display:none">En az 4 oyuncu seç.</div>
 </div>
 
 <!-- AYARLAR -->
@@ -303,7 +351,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <input type="text" id="newPlayerName" placeholder="Oyuncu adı" style="min-width:120px;flex:1">
       <button class="abtn pri" onclick="addPlayer()" style="margin:0;white-space:nowrap">+ Ekle</button>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:7px">Mevkileri satırda düzenleyebilirsin — birden fazla seçilebilir.</div>
+  </div>
+  <div class="card">
+    <div class="slabel">Fotoğraflar</div>
+    <div class="stitle">Oyuncu Fotoğrafları</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+      Fotoğrafları GitHub'daki <b>/public/players/</b> klasörüne yükle.<br>
+      Dosya adını her oyuncu için gir (örn: <b>ahmet.jpg</b>)
+    </div>
+    <div id="photoList"></div>
   </div>
 </div>
 </div><!-- .app -->
@@ -329,12 +385,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <script>
 var GS='https://script.google.com/macros/s/AKfycbxn8T0QYMmZpU0NvVylCQLhIsv_HPPFODAvt3vKJ9EzolwYekv1L3ovyuos2DNCuwy3/exec';
 var PLAYERS=JSON.parse(localStorage.getItem('hs_players')||'null')||[
-  {name:'Ahmet',pos:['OMO']},{name:'Eren',pos:['FRV']},{name:'Nail',pos:['DEF']},
-  {name:'Oguz',pos:['OMO']},{name:'Bugay',pos:['FRV']},{name:'Yagser',pos:['OMO']},
-  {name:'Cemalettin',pos:['DEF']},{name:'Edip',pos:['OMO']},{name:'Mustafa',pos:['FRV']},
-  {name:'Marwan',pos:['OMO']},{name:'Ugur',pos:['DEF']},{name:'Atay',pos:['OMO']},
-  {name:'Baris',pos:['SAB','SOB']},{name:'Burak',pos:['SAN']},{name:'Ahmet Gedik',pos:['AMO']},{name:'Orhan Abi',pos:['KL']}
+  {name:'Ahmet',pos:['OMO'],photo:''},{name:'Eren',pos:['FRV'],photo:''},{name:'Nail',pos:['DEF'],photo:''},
+  {name:'Oguz',pos:['OMO'],photo:''},{name:'Bugay',pos:['FRV'],photo:''},{name:'Yagser',pos:['OMO'],photo:''},
+  {name:'Cemalettin',pos:['DEF'],photo:''},{name:'Edip',pos:['OMO'],photo:''},{name:'Mustafa',pos:['FRV'],photo:''},
+  {name:'Marwan',pos:['OMO'],photo:''},{name:'Ugur',pos:['DEF'],photo:''},{name:'Atay',pos:['OMO'],photo:''},
+  {name:'Baris',pos:['DEF'],photo:''},{name:'Burak',pos:['FRV'],photo:''},{name:'Ahmet Gedik',pos:['OMO'],photo:''},{name:'Orhan Abi',pos:['KL'],photo:''}
 ];
+var BASE_URL='https://www.yagserakgun.com/players/';
 var CRITERIA=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik','Takim Oyunu'];
 var CDISP=['Pas','Şut','Drib.','Savunma','Hız','Fizik','Takım'];
 // ─── 4 MEVKİ SİSTEMİ ───────────────────────────────────────────────────────
@@ -640,70 +697,181 @@ function loadResults(cb){
   gs({action:'getResults'}).then(function(d){resultData=d;cb(d);}).catch(function(){cb(null);});
 }
 
-function getFormBadge(p){
+// ─── RATING RENGİ ───────────────────────────────────────────────────────────
+function ratingColor(r){
+  if(r>=85)return{text:'#f0c040',bar:'#f0c040'};
+  if(r>=75)return{text:'#c0c0c0',bar:'#c0c0c0'};
+  if(r>=65)return{text:'#cd7f32',bar:'#cd7f32'};
+  return{text:'#4fc3f7',bar:'#4fc3f7'};
+}
+function cardClass(r){
+  if(r>=85)return'fc-gold';
+  if(r>=75)return'fc-silver';
+  if(r>=65)return'fc-bronze';
+  return'fc-normal';
+}
+function avatarBg(r){
+  if(r>=85)return'rgba(240,192,64,.2)';
+  if(r>=75)return'rgba(192,192,192,.18)';
+  if(r>=65)return'rgba(205,127,50,.2)';
+  return'rgba(79,195,247,.12)';
+}
+function getFormEmoji(p){
   var genels=p.weeklyGenels.filter(function(v){return v!=null;});
   if(genels.length<2)return'';
-  var last=genels.slice(-3);
-  if(last.length<2)return'';
-  var diff=last[last.length-1]-last[0];
-  if(diff>0.3)return'<span style="font-size:10px;background:#00c85322;color:#00c853;border:1px solid #00c85344;border-radius:10px;padding:2px 6px">🔥 Formda</span>';
-  if(diff<-0.3)return'<span style="font-size:10px;background:#ff444422;color:#ff4444;border:1px solid #ff444444;border-radius:10px;padding:2px 6px">📉 Düşüşte</span>';
-  return'<span style="font-size:10px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:10px;padding:2px 6px">➡️ Stabil</span>';
+  var diff=genels[genels.length-1]-genels[0];
+  return diff>0.3?'🔥':diff<-0.3?'📉':'';
+}
+function getFormBadge(p){return getFormEmoji(p);}
+
+function getPlayerPhoto(name){
+  var pl=PLAYERS.find(function(p){return p.name===name;});
+  return pl&&pl.photo?BASE_URL+pl.photo:'';
+}
+
+// ─── FIFA KARTI ──────────────────────────────────────────────────────────────
+function makeFifaCard(p, pObj, rank, data){
+  var wAvg=posRating(p,pObj);
+  var rating=wAvg!==null?Math.min(99,Math.round(wAvg*10)):Math.round((p.genelOrt||0)*10);
+  var stdDev=calcStdDev(p);
+  var posArr=normPos(pObj);
+  var posKey=posArr[0]||'OMO';
+  var posName=POS[posKey]||posKey;
+  var col=ratingColor(rating);
+  var cls=cardClass(rating);
+  var formEmoji=getFormEmoji(p);
+  var consIcon=stdDev<0.8?'🎯':stdDev<1.5?'📊':'⚡';
+  var rankBadge=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
+  var photoUrl=getPlayerPhoto(p.name);
+  var statKeys=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik'];
+  var statLabels=['PAS','ŞUT','DRB','SAV','HIZ','FİZ'];
+  var statsHTML=statKeys.map(function(c,ci){
+    var vals=[];
+    if(p.weeklyKriterler)Object.values(p.weeklyKriterler).forEach(function(wk){if(wk&&wk[c]!=null)vals.push(+wk[c]);});
+    var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+    var scaled=Math.round(avg*10);
+    var pct=(avg/10*100).toFixed(0);
+    return '<div class="fc-stat">'+
+      '<span class="fc-stat-val" style="color:'+col.text+'">'+scaled+'</span>'+
+      '<div class="fc-stat-bar"><div class="fc-stat-fill" style="width:'+pct+'%;background:'+col.bar+'"></div></div>'+
+      '<span class="fc-stat-lbl" style="color:'+col.text+'99">'+statLabels[ci]+'</span>'+
+    '</div>';
+  }).join('');
+
+  var avatarHTML=photoUrl
+    ?'<img src="'+photoUrl+'" onerror="this.parentNode.innerHTML=\'<span style=\\"color:'+col.text+'\\">'+p.name.charAt(0)+'</span>\'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+    :'<span style="color:'+col.text+'">'+p.name.charAt(0)+'</span>';
+
+  var card=document.createElement('div');
+  card.className='fc '+cls;
+  card.innerHTML=
+    (rankBadge?'<div class="fc-badge">'+rankBadge+'</div>':'')+
+    '<div class="fc-top">'+
+      '<div>'+
+        '<div class="fc-rating" style="color:'+col.text+'">'+rating+'</div>'+
+        '<div class="fc-pos-tag" style="color:'+col.text+'aa">'+posName+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;line-height:1.4">'+
+        '<div style="font-size:14px">'+consIcon+'</div>'+
+        (formEmoji?'<div style="font-size:12px">'+formEmoji+'</div>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="fc-avatar" style="background:'+avatarBg(rating)+'">'+avatarHTML+'</div>'+
+    '<div class="fc-name">'+p.name+'</div>'+
+    '<div class="fc-divider" style="background:'+col.text+'"></div>'+
+    '<div class="fc-stats">'+statsHTML+'</div>';
+  card.onclick=(function(pl,d){return function(){openProfile(pl,d);};})(p,data);
+  return card;
+}
+
+// ─── SIRALAMALAR ─────────────────────────────────────────────────────────────
+var currentRankTab='genel';
+var _sonucData=null;
+
+function setRankTab(tab,btn){
+  currentRankTab=tab;
+  document.querySelectorAll('.rank-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  var grid=document.getElementById('fifaGrid');
+  grid.className='fg';grid.style.marginBottom='12px';
+  if(_sonucData)renderRankTab(_sonucData);
 }
 
 function renderSonuc(){
   var grid=document.getElementById('fifaGrid'),nd=document.getElementById('noDataSonuc');
+  grid.className='fg';grid.style.marginBottom='12px';
   grid.innerHTML='<div class="no-data"><span class="spin"></span>Yükleniyor...</div>';nd.style.display='none';
   loadResults(function(data){
-    grid.innerHTML='';
+    _sonucData=data;grid.innerHTML='';
     if(!data||!data.players){nd.style.display='block';return;}
-
-    // Katılım bilgisi — son haftaya göre kim puan verdi
     if(data.weeks&&data.weeks.length){
-      var lastWeek=data.weeks[data.weeks.length-1];
       var wi=data.weeks.length-1;
-      var ratedThisWeek=data.players.filter(function(p){return p.weeklyGenels[wi]!=null;}).map(function(p){return p.name;});
-      var notRated=PLAYERS.map(function(p){return p.name;}).filter(function(n){return ratedThisWeek.indexOf(n)<0;});
-      var bar=document.getElementById('participationBar');
-      var cnt=document.getElementById('participationCount');
+      var lastWeek=data.weeks[wi];
+      var rated=data.players.filter(function(p){return p.weeklyGenels[wi]!=null;}).map(function(p){return p.name;});
+      var notRated=PLAYERS.map(function(p){return p.name;}).filter(function(n){return rated.indexOf(n)<0;});
+      var bar=document.getElementById('participationBar');if(bar)bar.style.display='block';
+      var cnt=document.getElementById('participationCount');if(cnt)cnt.textContent=rated.length+'/'+PLAYERS.length+' kişi ('+lastWeek+')';
       var lst=document.getElementById('participationList');
+      if(lst)lst.innerHTML=rated.map(function(n){return'<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">✓ '+n+'</span>';}).join('');
       var mis=document.getElementById('missingList');
-      if(bar)bar.style.display='block';
-      if(cnt)cnt.textContent=ratedThisWeek.length+' / '+PLAYERS.length+' kişi ('+lastWeek+')';
-      if(lst)lst.innerHTML=ratedThisWeek.map(function(n){
-        return '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">✓ '+n+'</span>';
-      }).join('');
-      if(mis)mis.innerHTML=notRated.length?'Henüz puan vermedi: <b>'+notRated.join(', ')+'</b>':'';
+      if(mis)mis.innerHTML=notRated.length?'Henüz vermedi: <b>'+notRated.join(', ')+'</b>':'';
     }
-
-    var sorted=data.players.filter(function(p){return p.genelOrt!==null;});
-    if(!sorted.length){nd.style.display='block';return;}
-    sorted.forEach(function(p,i){
-      var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
-      var wAvg=posRating(p,pObj);
-      var rating=wAvg!==null?Math.min(99,Math.round(wAvg*10)):Math.round((p.genelOrt||0)*10);
-      var mc=i===0?'m1':i===1?'m2':i===2?'m3':'';
-      var posArr=normPos(pObj);
-      var posLbl=posArr.length?POS[posArr[0]]||posArr[0]:'';
-      var formBadge=getFormBadge(p);
-      var st=CRITERIA.slice(0,6).map(function(c,ci){
-        var vals=[];if(p.weeklyKriterler)Object.values(p.weeklyKriterler).forEach(function(wk){if(wk&&wk[c]!=null)vals.push(wk[c]);});
-        var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
-        return '<div class="fc-s"><b>'+(avg!==null?Math.round(avg*10):'—')+'</b>'+CDISP[ci].substring(0,3)+'</div>';
-      }).join('');
-      var card=document.createElement('div');card.className='fc '+mc;
-      card.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:3px">'+
-        '<div><div class="fc-r">'+rating+'</div><div class="fc-pl">'+(i===0?'MVP':i<3?'STAR':'MID')+'</div></div>'+
-        '<div style="font-size:14px">'+(MEDALS[i]||'')+'</div></div>'+
-        '<div class="fc-av">'+p.name.charAt(0)+'</div>'+
-        '<div class="fc-nm">'+p.name+'</div>'+
-        '<div class="fc-pt">'+posLbl+'</div>'+
-        '<div style="margin-bottom:3px">'+formBadge+'</div>'+
-        '<div class="fc-st">'+st+'</div>';
-      card.onclick=(function(pl,d){return function(){openProfile(pl,d);};})(p,data);
-      grid.appendChild(card);
-    });
+    renderRankTab(data);
   });
+}
+
+function renderRankTab(data){
+  var grid=document.getElementById('fifaGrid'),nd=document.getElementById('noDataSonuc');
+  if(currentRankTab==='11'){render11lik(data);return;}
+  grid.className='fg';grid.style.marginBottom='12px';
+  grid.innerHTML='';nd.style.display='none';
+  var posFilter={kaleci:'KL',defans:'DEF',orta:'OMO',forvet:'FRV'}[currentRankTab];
+  var players=data.players.filter(function(p){return p.genelOrt!==null;});
+  if(posFilter){
+    players=players.filter(function(p){
+      var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
+      return normPos(pObj)[0]===posFilter;
+    });
+  }
+  var sorted=players.map(function(p){
+    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
+    return{p:p,pObj:pObj,score:posRating(p,pObj)||0};
+  }).sort(function(a,b){return b.score-a.score;});
+  if(!sorted.length){nd.style.display='block';return;}
+  sorted.forEach(function(item,i){grid.appendChild(makeFifaCard(item.p,item.pObj,i,data));});
+}
+
+// ─── HAFTANIN 11'İ ───────────────────────────────────────────────────────────
+function render11lik(data){
+  var grid=document.getElementById('fifaGrid');
+  grid.className='';grid.style.marginBottom='0';
+  var players=data.players.filter(function(p){return p.genelOrt!==null;});
+  var byPos={KL:[],DEF:[],OMO:[],FRV:[]};
+  players.forEach(function(p){
+    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
+    var pos=normPos(pObj)[0]||'OMO';
+    if(byPos[pos])byPos[pos].push({p:p,pObj:pObj,score:posRating(p,pObj)||0});
+  });
+  Object.keys(byPos).forEach(function(k){byPos[k].sort(function(a,b){return b.score-a.score;});});
+  function pNode(item,sz){
+    if(!item)return'<div class="field-player"><div class="field-av" style="width:'+sz+'px;height:'+sz+'px;font-size:'+(sz*.35)+'px;background:#333;border-color:#555">?</div><div class="field-name" style="color:#777">—</div><div class="field-rating" style="color:#555">—</div></div>';
+    var r=Math.min(99,Math.round((item.score||0)*10));
+    var col=ratingColor(r);
+    return'<div class="field-player">'+
+      '<div class="field-av" style="width:'+sz+'px;height:'+sz+'px;font-size:'+(sz*.35)+'px;background:'+avatarBg(r)+';border-color:'+col.text+'55"><span style="color:'+col.text+'">'+item.p.name.charAt(0)+'</span></div>'+
+      '<div class="field-name">'+item.p.name+'</div>'+
+      '<div class="field-rating" style="color:'+col.text+'">'+r+'</div>'+
+    '</div>';
+  }
+  var kl=byPos.KL[0],defs=byPos.DEF.slice(0,4),mids=byPos.OMO.slice(0,4),fwds=byPos.FRV.slice(0,3);
+  grid.innerHTML=
+    '<div class="field">'+
+      '<div class="field-row">'+pNode(fwds[0],44)+pNode(fwds[1],44)+pNode(fwds[2],44)+'</div>'+
+      '<div class="field-row">'+pNode(mids[0],40)+pNode(mids[1],40)+pNode(mids[2],40)+pNode(mids[3],40)+'</div>'+
+      '<div class="field-row">'+pNode(defs[0],38)+pNode(defs[1],38)+pNode(defs[2],38)+pNode(defs[3],38)+'</div>'+
+      '<div class="field-row">'+pNode(kl,46)+'</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px">Pozisyon ağırlıklı rating — en iyi 11</div>';
 }
 
 // ─── HAFTALIK ───────────────────────────────────────────────────────────────
@@ -966,69 +1134,134 @@ function renderKatilim(){
 }
 
 // ─── TAKIM ──────────────────────────────────────────────────────────────────
-function renderTakim(){
-  if(resultData&&resultData.players){buildTeams();return;}
-  document.getElementById('noDataTakim').style.display='block';
-  loadResults(function(data){if(data&&data.players&&data.players.some(function(p){return p.genelOrt;}))buildTeams();});
+// ─── TAKIM KATILIM ──────────────────────────────────────────────────────────
+var todaySelected={};
+
+function renderTodayPlayers(){
+  var el=document.getElementById('todayPlayers');if(!el)return;
+  el.innerHTML=PLAYERS.map(function(p){
+    var on=todaySelected[p.name]!==false; // varsayılan: seçili
+    if(!(p.name in todaySelected))todaySelected[p.name]=true;
+    var pos=normPos(p)[0]||'OMO';
+    var posEmojis={KL:'🧤',DEF:'🛡️',OMO:'⚙️',FRV:'⚡'};
+    return '<button onclick="toggleToday(\''+p.name+'\')" id="td-'+san(p.name)+'" style="'+
+      'font-size:12px;padding:5px 11px;border-radius:20px;cursor:pointer;font-family:inherit;transition:all .2s;'+
+      'border:1px solid '+(on?'var(--green)':'var(--border)')+';'+
+      'background:'+(on?'var(--green)':'var(--bg3)')+';'+
+      'color:'+(on?'#fff':'var(--text2)')+'">'+
+      (posEmojis[pos]||'')+' '+p.name+
+    '</button>';
+  }).join('');
 }
 
+function toggleToday(name){
+  todaySelected[name]=!todaySelected[name];
+  var btn=document.getElementById('td-'+san(name));
+  if(!btn)return;
+  var on=todaySelected[name];
+  btn.style.background=on?'var(--green)':'var(--bg3)';
+  btn.style.color=on?'#fff':'var(--text2)';
+  btn.style.borderColor=on?'var(--green)':'var(--border)';
+}
+
+function selectAllPlayers(){PLAYERS.forEach(function(p){todaySelected[p.name]=true;});renderTodayPlayers();}
+function clearAllPlayers(){PLAYERS.forEach(function(p){todaySelected[p.name]=false;});renderTodayPlayers();}
+
 function buildTeams(){
-  if(!resultData||!resultData.players)return;
   document.getElementById('noDataTakim').style.display='none';
-  // Pozisyona göre dengeli dağılım
-  var players=resultData.players.filter(function(p){return p.genelOrt;}).map(function(p){
-    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
-    return{name:p.name,avg:posRating(p,pObj)||p.genelOrt||0,pos:pObj.pos,pobj:pObj};
+  document.getElementById('teamResult').innerHTML='';
+
+  var selected=PLAYERS.filter(function(p){return todaySelected[p.name]!==false;});
+  if(selected.length<4){
+    document.getElementById('noDataTakim').style.display='block';
+    document.getElementById('noDataTakim').textContent='En az 4 oyuncu seç.';
+    return;
+  }
+
+  if(!resultData){
+    loadResults(function(data){if(data)buildTeamsWithData(selected);else{
+      document.getElementById('noDataTakim').style.display='block';
+      document.getElementById('noDataTakim').textContent='Önce sonuçlar yüklenmeli.';
+    }});
+    return;
+  }
+  buildTeamsWithData(selected);
+}
+
+function buildTeamsWithData(selected){
+  var players=selected.map(function(pl){
+    var pObj=pl;
+    var pos=normPos(pObj)[0]||'OMO';
+    var pData=resultData&&resultData.players?resultData.players.find(function(x){return x.name===pl.name;}):null;
+    var avg=pData?posRating(pData,pObj)||pData.genelOrt||5:5;
+    return{name:pl.name,avg:avg,pos:pos,pobj:pObj};
   }).sort(function(a,b){return b.avg-a.avg;});
 
-  // Snake draft: 1,2,2,1,1,2... by position groups
-  var gk=players.filter(function(p){return getPosGroup(p)==='GK';});
-  var def=players.filter(function(p){return getPosGroup(p)==='DEF';});
-  var mid=players.filter(function(p){return getPosGroup(p)==='MID';});
-  var fwd=players.filter(function(p){return getPosGroup(p)==='FWD';});
+  // Kalecileri önce dağıt
+  var kls=players.filter(function(p){return p.pos==='KL';});
+  var defs=players.filter(function(p){return p.pos==='DEF';});
+  var mids=players.filter(function(p){return p.pos==='OMO';});
+  var fwds=players.filter(function(p){return p.pos==='FRV';});
+
   var t1=[],t2=[];
-  [gk,def,mid,fwd].forEach(function(grp){
-    grp.forEach(function(p,i){(i%2===0?t1:t2).push(p);});
-  });
+  if(kls.length>=2){t1.push(kls[0]);t2.push(kls[1]);kls=kls.slice(2);}
+  else if(kls.length===1){t1.push(kls[0]);kls=[];}
+
+  function snakeDraft(grp){grp.forEach(function(p,i){(i%2===0?t1:t2).push(p);});}
+  snakeDraft(defs);snakeDraft(mids);snakeDraft(fwds);snakeDraft(kls);
+
   renderTeams(t1,t2);
 }
 
 function shuffleTeams(){
-  if(!resultData||!resultData.players)return;
+  var selected=PLAYERS.filter(function(p){return todaySelected[p.name]!==false;});
+  if(selected.length<4){
+    document.getElementById('noDataTakim').style.display='block';return;
+  }
   document.getElementById('noDataTakim').style.display='none';
-  var players=resultData.players.filter(function(p){return p.genelOrt;}).map(function(p){
-    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
-    return{name:p.name,avg:posRating(p,pObj)||p.genelOrt||0,pos:pObj.pos,pobj:pObj};
+  var players=selected.map(function(pl){
+    var pData=resultData&&resultData.players?resultData.players.find(function(x){return x.name===pl.name;}):null;
+    var avg=pData?posRating(pData,pl)||pData.genelOrt||5:5;
+    return{name:pl.name,avg:avg,pos:normPos(pl)[0]||'OMO',pobj:pl};
   });
   for(var i=players.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=players[i];players[i]=players[j];players[j]=t;}
   renderTeams(players.slice(0,Math.ceil(players.length/2)),players.slice(Math.ceil(players.length/2)));
-}
-
-function teamBalanceScore(team){
-  var posCounts={GK:0,DEF:0,MID:0,FWD:0};
-  team.forEach(function(p){var g=getPosGroup(p);posCounts[g]=(posCounts[g]||0)+1;});
-  var idealGK=1,idealDEF=2,idealMID=3,idealFWD=2;
-  var penalty=Math.abs(posCounts.GK-idealGK)+Math.abs(posCounts.DEF-idealDEF)+Math.abs(posCounts.MID-idealMID)+Math.abs(posCounts.FWD-idealFWD);
-  return penalty;
 }
 
 function renderTeams(t1,t2){
   var avg1=t1.reduce(function(a,p){return a+p.avg;},0)/t1.length;
   var avg2=t2.reduce(function(a,p){return a+p.avg;},0)/t2.length;
   var diff=Math.abs(avg1-avg2);
-  var balance=diff<0.3?'🟢 Çok dengeli':diff<0.6?'🟡 Dengeli':'🔴 Dengesiz';
-  var pen1=teamBalanceScore(t1),pen2=teamBalanceScore(t2);
-  var posBalance=(pen1+pen2)===0?'🟢 Pozisyon dengeli':'🟡 Pozisyon farkı var';
+  var rDiff=(diff*10).toFixed(1);
+
+  // Pozisyon dengesi
+  function posCount(t,pos){return t.filter(function(p){return p.pos===pos;}).length;}
+  var posOk=Math.abs(posCount(t1,'KL')-posCount(t2,'KL'))<=1&&
+             Math.abs(posCount(t1,'DEF')-posCount(t2,'DEF'))<=1;
+
+  var balanceEmoji=diff<0.3?'🟢':diff<0.6?'🟡':'🔴';
+  var posEmoji=posOk?'🟢':'🟡';
 
   document.getElementById('balanceInfo').innerHTML=
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-    '<span style="font-size:12px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:20px">'+balance+' ('+diff.toFixed(2)+' puan farkı)</span>'+
-    '<span style="font-size:12px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:20px">'+posBalance+'</span></div>';
+    '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:12px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:20px">'+balanceEmoji+' Rating farkı: '+rDiff+'</span>'+
+    '<span style="font-size:12px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:20px">'+posEmoji+' Mevki dağılımı</span>'+
+    '</div>';
 
+  var posColors={KL:'#f59e0b',DEF:'#3b82f6',OMO:'#10b981',FRV:'#ef4444'};
+  var posEmojis={KL:'🧤',DEF:'🛡️',OMO:'⚙️',FRV:'⚡'};
   var list=function(t){return t.map(function(p){
-    return '<div class="tplayer"><span>'+p.name+' <small style="color:var(--text3);font-size:10px">'+posShort(p)+'</small></span>'+
-      '<span class="tscore">'+(p.avg?(p.avg*10).toFixed(0):'?')+'</span></div>';
+    var r=Math.min(99,Math.round((p.avg||0)*10));
+    var col=ratingColor(r);
+    return '<div class="tplayer">'+
+      '<span style="display:flex;align-items:center;gap:5px">'+
+        '<span style="font-size:11px">'+(posEmojis[p.pos]||'')+'</span>'+
+        '<span>'+p.name+'</span>'+
+      '</span>'+
+      '<span class="tscore" style="color:'+col.text+'">'+r+'</span>'+
+    '</div>';
   }).join('');};
+
   document.getElementById('teamResult').innerHTML=
     '<div class="tgrid">'+
     '<div class="tbox"><h3>⚪ Takım 1 — '+(avg1*10).toFixed(0)+'</h3>'+list(t1)+'</div>'+
@@ -1118,13 +1351,57 @@ function addPlayer(){
   var name=document.getElementById('newPlayerName').value.trim();
   if(!name)return;
   if(PLAYERS.find(function(p){return p.name===name;})){alert('Bu oyuncu zaten var!');return;}
-  PLAYERS.push({name:name,pos:['OMO']});savePlayers();renderPlayerList();initSelect();buildGoalInputs();
+  PLAYERS.push({name:name,pos:['OMO'],photo:''});savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
   document.getElementById('newPlayerName').value='';
 }
 
 function removePlayer(i){
   if(!confirm(PLAYERS[i].name+' silinsin mi?'))return;
-  PLAYERS.splice(i,1);savePlayers();renderPlayerList();initSelect();buildGoalInputs();
+  PLAYERS.splice(i,1);savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
+}
+
+// ─── FOTOĞRAF YÖNETİMİ ──────────────────────────────────────────────────────
+function renderPhotoList(){
+  var el=document.getElementById('photoList');if(!el)return;
+  el.innerHTML=PLAYERS.map(function(p,i){
+    var photo=p.photo||'';
+    var photoUrl=photo?BASE_URL+photo:'';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2)">'+
+      '<div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green)">'+
+        (photoUrl?'<img src="'+photoUrl+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">':'<span>'+p.name.charAt(0)+'</span>')+
+      '</div>'+
+      '<span style="flex:1;font-size:13px;font-weight:500">'+p.name+'</span>'+
+      '<input type="text" value="'+photo+'" placeholder="ahmet.jpg" style="width:140px;font-size:12px;padding:5px 8px" '+
+        'onchange="savePhoto('+i+',this.value)" oninput="previewPhoto('+i+',this.value)">'+
+    '</div>';
+  }).join('');
+}
+
+function savePhoto(i,val){
+  PLAYERS[i].photo=val.trim();
+  savePlayers();
+}
+
+function previewPhoto(i,val){
+  // Anlık önizleme
+  var rows=document.getElementById('photoList').children;
+  if(!rows[i])return;
+  var img=rows[i].querySelector('img');
+  var span=rows[i].querySelector('span');
+  if(val.trim()){
+    if(!img){
+      var av=rows[i].querySelector('div > *');
+      if(av){av.style.display='none';}
+      var newImg=document.createElement('img');
+      newImg.src=BASE_URL+val.trim();
+      newImg.style.cssText='width:100%;height:100%;object-fit:cover';
+      rows[i].querySelector('div').appendChild(newImg);
+    } else {
+      img.src=BASE_URL+val.trim();
+      img.style.display='';
+      if(span)span.style.display='none';
+    }
+  }
 }
 
 
@@ -1181,9 +1458,9 @@ function showScreen(id){
   if(id==='karsi')renderComparison();
   if(id==='sezon')renderSezon();
   if(id==='katilim')renderKatilim();
-  if(id==='takim')renderTakim();
+  if(id==='takim'){renderTodayPlayers();if(!resultData)loadResults(function(){});}
   if(id==='mac')loadMatchHistory();
-  if(id==='ayarlar'){renderPlayerList();}
+  if(id==='ayarlar'){renderPlayerList();renderPhotoList();}
 }
 
 function san(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
