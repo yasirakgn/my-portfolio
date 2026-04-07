@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Bakımda</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0ea5e9);
+    background-size: 400% 400%;
+    animation: bgMove 10s ease infinite;
+}
+
+@keyframes bgMove {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+.container {
+    text-align: center;
+}
+
+h1 {
+    font-size: 40px;
+    margin-bottom: 10px;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+p {
+    color: #cbd5f5;
+}
+
+.countdown {
+    font-size: 32px;
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+.highlight {
+    margin-top: 30px;
+    font-size: 22px;
+    color: #38bdf8;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0%,100% {opacity: 1;}
+    50% {opacity: 0.4;}
+}
+
+/* Top animasyonu */
+.ball {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    bottom: 50px;
+    left: 0;
+    animation: moveBall 6s linear infinite;
+}
+
+@keyframes moveBall {
+    0% { left: -50px; }
+    100% { left: 110%; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="ball"></div>
+
+<div class="container">
+    <h1>🚧 Site Bakımda</h1>
+    <p>Kısa bir mola veriyoruz... ama geri dönüyoruz!</p>
+
+    <div class="countdown" id="countdown">Yükleniyor...</div>
+
+    <div class="highlight">
+        ⚽ Maçın en çok koşanı: Bugay Onur Yazıcı
+    </div>
+</div>
+
+<script>
+// 5 dakikalık geri sayım
+let time = 300;
+
+const countdownEl = document.getElementById("countdown");
+
+function updateCountdown() {
+    let minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+
+    seconds = seconds < 10 ? "0" + seconds : seconds;
+
+    countdownEl.innerHTML = minutes + ":" + seconds;
+
+    if (time > 0) {
+        time--;
+    } else {
+        countdownEl.innerHTML = "Yayındayız 🚀";
+    }
+}
+
+setInterval(updateCountdown, 1000);
+</script>
+
+</body>
+</html>
