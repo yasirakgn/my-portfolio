@@ -225,6 +225,44 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .add-row input{flex:1}
 .pos-sel{padding:8px 9px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);color:var(--text);font-size:12px;outline:none;font-family:inherit}
 
+
+/* ─── MAÇ EKRANI ─────────────────────────────────────────────────────────── */
+.match-scoreboard{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+.match-team{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1}
+.match-team-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.5px}
+.match-vs{font-size:22px;font-weight:900;color:var(--text3);flex-shrink:0}
+.match-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.match-meta-item{display:flex;flex-direction:column;gap:5px}
+.mac-save-btn{display:block;width:100%;background:var(--green);color:#fff;border:none;border-radius:var(--rs);padding:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(26,107,60,.3);font-family:inherit;margin-bottom:4px}
+
+/* ─── GOL / ASİST TABLOSU ────────────────────────────────────────────────── */
+.goal-table-header{display:grid;grid-template-columns:1fr 100px 100px;align-items:center;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);margin-bottom:6px}
+.goal-col-name{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.goal-col-stat{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;text-align:center}
+.goal-row{display:grid;grid-template-columns:1fr 100px 100px;align-items:center;padding:7px 10px;border-radius:var(--rs);border:1px solid transparent;transition:border-color .2s,background .2s;margin-bottom:4px}
+.goal-row:hover{background:var(--bg3)}
+.goal-row-active{border-color:var(--green)!important;background:var(--gl)!important}
+.goal-player{display:flex;align-items:center;gap:8px;min-width:0}
+.goal-player-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal-stepper{display:flex;align-items:center;justify-content:center;gap:6px}
+.step-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:16px;line-height:1;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;font-weight:600;transition:all .15s}
+.step-btn:hover{border-color:var(--green);color:var(--green);background:var(--gd)}
+.step-val{font-size:15px;font-weight:700;min-width:18px;text-align:center;color:var(--text)}
+.goal-row-active .step-val{color:var(--green)}
+
+/* ─── MAÇ GEÇMİŞİ KARTLARI ──────────────────────────────────────────────── */
+.mh-card{background:var(--bg3);border-radius:var(--rs);padding:11px 13px;margin-bottom:8px;border:1px solid var(--border2)}
+.mh-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.mh-week{font-size:11px;color:var(--text3);font-weight:500;min-width:60px}
+.mh-score{font-size:18px;font-weight:900;color:var(--text);flex:1;text-align:center}
+.mh-result{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.mh-win1{background:#ffffff20;color:#ddd}
+.mh-win2{background:#3b82f620;color:#3b82f6}
+.mh-draw{background:var(--gd);color:var(--green)}
+.mh-goals{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mh-chip{font-size:11px;padding:2px 7px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
+.mh-chip b{color:var(--text);font-weight:600}
+.mh-note{font-size:11px;color:var(--text3);margin-top:5px;font-style:italic}
 </style>
 </head>
 <body>
@@ -268,29 +306,51 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <!-- MAÇ -->
 <div id="screen-mac" class="screen">
+
+  <!-- Skor + Hafta -->
   <div class="card">
-    <div class="slabel">Skor</div>
-    <div class="stitle">Maç Sonucu & Gol/Asist</div>
-    <div class="score-inputs">
-      <div class="mteam">⚪ Takım 1</div>
-      <input type="number" class="sinput" id="score1" min="0" max="99" value="0">
-      <span style="font-size:18px;color:var(--text3);font-weight:700">—</span>
-      <input type="number" class="sinput" id="score2" min="0" max="99" value="0">
-      <div class="mteam">Takım 2 🔵</div>
+    <div class="slabel">Maç Sonucu</div>
+    <div class="stitle" style="margin-bottom:14px">Skoru Gir</div>
+    <div class="match-scoreboard">
+      <div class="match-team">
+        <div class="match-team-label">⚪ Takım 1</div>
+        <input type="number" class="sinput" id="score1" min="0" max="99" value="0">
+      </div>
+      <div class="match-vs">VS</div>
+      <div class="match-team">
+        <div class="match-team-label">🔵 Takım 2</div>
+        <input type="number" class="sinput" id="score2" min="0" max="99" value="0">
+      </div>
     </div>
-    <div style="margin-top:10px">
-      <div class="slabel" style="margin-bottom:6px">Hafta</div>
-      <input type="text" id="matchWeek" style="margin-bottom:9px">
+    <div class="match-meta">
+      <div class="match-meta-item">
+        <div class="slabel">Hafta</div>
+        <input type="text" id="matchWeek">
+      </div>
+      <div class="match-meta-item">
+        <div class="slabel">Not</div>
+        <input type="text" id="matchNote" placeholder="örn: Yağmurlu hava">
+      </div>
     </div>
-    <div class="slabel" style="margin-bottom:8px">Gol / Asist</div>
-    <div id="goalInputs"></div>
-    <div style="margin-top:9px">
-      <div class="slabel" style="margin-bottom:5px">Not</div>
-      <input type="text" id="matchNote" placeholder="örn: Yağmurlu hava">
-    </div>
-    <button class="abtn pri" style="margin-top:12px;width:100%" onclick="saveMatch()">Kaydet</button>
   </div>
+
+  <!-- Gol / Asist -->
   <div class="card">
+    <div class="slabel">İstatistik</div>
+    <div class="stitle" style="margin-bottom:12px">Gol &amp; Asist</div>
+    <div class="goal-table-header">
+      <span class="goal-col-name">Oyuncu</span>
+      <span class="goal-col-stat">⚽ Gol</span>
+      <span class="goal-col-stat">🅰 Asist</span>
+    </div>
+    <div id="goalInputs"></div>
+  </div>
+
+  <!-- Kaydet -->
+  <button class="sub-btn mac-save-btn" onclick="saveMatch()">Kaydet →</button>
+
+  <!-- Geçmiş -->
+  <div class="card" style="margin-top:16px">
     <div class="sec-title">Geçmiş Maçlar</div>
     <div id="matchHistory"><div class="no-data"><span class="spin"></span>Yükleniyor...</div></div>
   </div>
@@ -413,9 +473,37 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <script>
 var GS='https://script.google.com/macros/s/AKfycbxn8T0QYMmZpU0NvVylCQLhIsv_HPPFODAvt3vKJ9EzolwYekv1L3ovyuos2DNCuwy3/exec';
-// Oyuncular Sheets'ten yüklenir — statik liste kaldırıldı
-var PLAYERS=[];
+var PLAYERS=JSON.parse(localStorage.getItem('hs_players')||'null')||[
+  {name:'Ahmet',pos:['OMO'],photo:''},{name:'Eren',pos:['FRV'],photo:''},{name:'Nail',pos:['DEF'],photo:''},
+  {name:'Oguz',pos:['OMO'],photo:''},{name:'Bugay',pos:['FRV'],photo:''},{name:'Yagser',pos:['OMO'],photo:''},
+  {name:'Cemalettin',pos:['DEF'],photo:''},{name:'Edip',pos:['OMO'],photo:''},{name:'Mustafa',pos:['FRV'],photo:''},
+  {name:'Marwan',pos:['OMO'],photo:''},{name:'Ugur',pos:['DEF'],photo:''},{name:'Atay',pos:['OMO'],photo:''},
+  {name:'Baris',pos:['DEF'],photo:''},{name:'Burak',pos:['FRV'],photo:''},{name:'Ahmet Gedik',pos:['OMO'],photo:''},{name:'Orhan Abi',pos:['KL'],photo:''},
+  {name:'Ertan',pos:['DEF'],photo:''},{name:'Hasan Kerem',pos:['DEF'],photo:''}
+];
 var BASE_URL='https://www.yagserakgun.com/players/';
+// Oyuncu fotoğraf dosyaları — GitHub /public/players/ klasörüne yükle
+var PLAYER_PHOTOS={
+  'Ahmet':      'ahmet.png',
+  'Eren':       'eren.png',
+  'Nail':       'nail.png',
+  'Oguz':       'oguz.png',
+  'Bugay':      'bugay.png',
+  'Yagser':     'yagser.png',
+  'Cemalettin': 'cemo.png',
+  'Edip':       'edip.png',
+  'Mustafa':    'mustafa.png',
+  'Marwan':     'marwan.png',
+  'Ugur':       'ugur.png',
+  'Atay':       'atay.png',
+  'Baris':      'baris.png',
+  'Burak':      'burakakbudak.png',
+  'Ahmet Gedik':'ahmetgedik.png',
+  'Orhan Abi':  'orhan.png',
+  'Ertan':      'ertan.png',
+  'Hasan Kerem':'hasankerem.png'
+  
+};
 var CRITERIA=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik','Takim Oyunu'];
 var CDISP=['Pas','Şut','Drib.','Savunma','Hız','Fizik','Takım'];
 // ─── 4 MEVKİ SİSTEMİ ───────────────────────────────────────────────────────
@@ -500,41 +588,41 @@ function simpleRating(p){
   });
   return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
 }
-var MEDALS=['\u{1F947}','\u{1F948}','\u{1F949}'];
+var MEDALS=['🥇','🥈','🥉'];
 var resultData=null,currentScores={},completedCards={},absentPlayers={},currentRater='';
 var darkMode=localStorage.getItem('hs_dark')==='1';
 
 if(darkMode)document.body.classList.add('dark');
-updateDarkBtn();
+updateDarkBtn();buildGoalInputs();
 document.getElementById('matchWeek').value=getWeekLabel();
-
-// Uygulama başlangıcı: oyuncuları Sheets'ten yükle, sonra UI'ı başlat
-loadPlayersFromSheets(function(){
-  buildGoalInputs();
-  initSelect();
-  renderPlayerList();
+// Önce Sheets'ten mevkileri yükle, sonra UI'ı başlat
+loadMevkilerFromSheets(function(){
+  initSelect();renderPlayerList();
 });
 
 function sp(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function savePlayers(){sp('hs_players',PLAYERS);}
 
-// ─── OYUNCU SHEETS ENTEGRASYONU ─────────────────────────────────────────────
-function loadPlayersFromSheets(cb){
-  gs({action:'getPlayers'}).then(function(data){
-    if(data&&data.players&&data.players.length){
-      PLAYERS=data.players;
+// ─── MEVKİ SHEETS ENTEGRASYONU ──────────────────────────────────────────────
+function loadMevkilerFromSheets(cb){
+  gs({action:'getMevkiler'}).then(function(data){
+    if(data&&data.mevkiler){
+      // Sheets'teki mevkileri PLAYERS'a uygula
+      PLAYERS.forEach(function(p){
+        if(data.mevkiler[p.name]){
+          p.pos=data.mevkiler[p.name];
+        }
+      });
+      savePlayers(); // localStorage'ı da güncelle
     }
     if(cb)cb();
-  }).catch(function(e){
-    console.warn('Oyuncular yüklenemedi, localStorage fallback:', e);
-    var saved=JSON.parse(localStorage.getItem('hs_players')||'null');
-    if(saved&&saved.length)PLAYERS=saved;
-    if(cb)cb();
+  }).catch(function(){
+    if(cb)cb(); // hata olsa da devam et
   });
 }
 
 function saveMevkiToSheets(playerName, posArr){
-  // Oyuncular sheet'e yazar (savePlayer)
-  gs({action:'savePlayer', name:playerName, pos:JSON.stringify(posArr)})
+  gs({action:'saveMevki', name:playerName, mevki:JSON.stringify(posArr)})
     .catch(function(e){console.warn('Mevki kaydedilemedi:',e);});
 }
 
@@ -559,13 +647,40 @@ function initSelect(){
 
 function buildGoalInputs(){
   var c=document.getElementById('goalInputs');if(!c)return;
-  c.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
-    PLAYERS.map(function(p){
-      return '<div class="goal-input-row"><label>'+p.name+'</label>'+
-        '<input type="number" class="goal-mini-input" id="gol-'+san(p.name)+'" min="0" max="20" value="0" placeholder="⚽">'+
-        '<input type="number" class="goal-mini-input" id="ast-'+san(p.name)+'" min="0" max="20" value="0" placeholder="🅰️"></div>';
-    }).join('')+'</div>'+
-    '<div style="font-size:10px;color:var(--text3);margin-top:5px">Sol: Gol ⚽ — Sağ: Asist 🅰️</div>';
+  c.innerHTML=PLAYERS.map(function(p){
+    var pid=san(p.name);
+    var g='gol-'+pid, a='ast-'+pid;
+    return '<div class="goal-row">'+
+      '<div class="goal-player">'+
+        '<div class="av" style="width:28px;height:28px;font-size:10px;flex-shrink:0">'+p.name.charAt(0)+'</div>'+
+        '<span class="goal-player-name">'+p.name+'</span>'+
+      '</div>'+
+      '<div class="goal-stepper">'+
+        '<button class="step-btn" data-id="'+g+'" data-d="-1" onclick="stepGoal(this)">−</button>'+
+        '<span class="step-val" id="'+g+'">0</span>'+
+        '<button class="step-btn" data-id="'+g+'" data-d="1" onclick="stepGoal(this)">+</button>'+
+      '</div>'+
+      '<div class="goal-stepper">'+
+        '<button class="step-btn" data-id="'+a+'" data-d="-1" onclick="stepGoal(this)">−</button>'+
+        '<span class="step-val" id="'+a+'">0</span>'+
+        '<button class="step-btn" data-id="'+a+'" data-d="1" onclick="stepGoal(this)">+</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function stepGoal(btn){
+  var id=btn.dataset.id, delta=parseInt(btn.dataset.d);
+  var el=document.getElementById(id);if(!el)return;
+  var v=Math.max(0, Math.min(20, (parseInt(el.textContent)||0)+delta));
+  el.textContent=v;
+  var row=btn.closest('.goal-row');
+  if(row)row.classList.toggle('goal-row-active', isRowActive(row));
+}
+
+function isRowActive(row){
+  if(!row)return false;
+  var vals=row.querySelectorAll('.step-val');
+  return Array.from(vals).some(function(v){return parseInt(v.textContent)>0;});
 }
 
 // ─── PUANLAMA ───────────────────────────────────────────────────────────────
@@ -683,8 +798,10 @@ function saveMatch(){
   var note=document.getElementById('matchNote').value||'';
   var goals={};
   PLAYERS.forEach(function(p){
-    var g=+(document.getElementById('gol-'+san(p.name))||{value:0}).value||0;
-    var a=+(document.getElementById('ast-'+san(p.name))||{value:0}).value||0;
+    var gEl=document.getElementById('gol-'+san(p.name));
+    var aEl=document.getElementById('ast-'+san(p.name));
+    var g=gEl?parseInt(gEl.textContent)||0:0;
+    var a=aEl?parseInt(aEl.textContent)||0:0;
     if(g||a)goals[p.name]={g:g,a:a};
   });
   gs({action:'saveMatch',score1:s1,score2:s2,week:week,note:note,goals:JSON.stringify(goals)})
@@ -693,8 +810,11 @@ function saveMatch(){
         loadMatchHistory();
         document.getElementById('matchNote').value='';
         PLAYERS.forEach(function(p){
-          var gi=document.getElementById('gol-'+san(p.name));var ai=document.getElementById('ast-'+san(p.name));
-          if(gi)gi.value=0;if(ai)ai.value=0;
+          var gi=document.getElementById('gol-'+san(p.name));
+          var ai=document.getElementById('ast-'+san(p.name));
+          if(gi)gi.textContent='0';if(ai)ai.textContent='0';
+          var row=gi?gi.closest('.goal-row'):null;
+          if(row)row.classList.remove('goal-row-active');
         });
         alert('Maç kaydedildi!');
       }else alert('Hata: '+JSON.stringify(d));
@@ -706,12 +826,32 @@ function loadMatchHistory(){
   el.innerHTML='<div class="no-data"><span class="spin"></span></div>';
   gs({action:'getMatches'}).then(function(data){
     if(!data||!data.matches||!data.matches.length){el.innerHTML='<div class="no-data">Henüz maç yok.</div>';return;}
-    var html='<table class="rtbl"><thead><tr><th>Hafta</th><th>Skor</th><th>Not</th></tr></thead><tbody>';
-    data.matches.slice().reverse().forEach(function(m){
-      var w=+m.score1>+m.score2?'⚪':+m.score2>+m.score1?'🔵':'🤝';
-      html+='<tr><td>'+m.week+'</td><td style="font-weight:700;color:var(--green)">'+w+' '+m.score1+' — '+m.score2+'</td><td style="color:var(--text2);font-size:11px">'+(m.note||'—')+'</td></tr>';
-    });
-    el.innerHTML=html+'</tbody></table>';
+    var rows=data.matches.slice().reverse().map(function(m){
+      var s1=+m.score1,s2=+m.score2;
+      var result=s1>s2?'⚪ Kazandı':s2>s1?'🔵 Kazandı':'🤝 Berabere';
+      var resultCls=s1>s2?'mh-win1':s2>s1?'mh-win2':'mh-draw';
+      // Gol/asist satırı
+      var goalChips='';
+      if(m.goals&&Object.keys(m.goals).length){
+        goalChips=Object.keys(m.goals).map(function(name){
+          var g=m.goals[name];
+          var parts=[];
+          if(g.g)parts.push('⚽×'+g.g);
+          if(g.a)parts.push('🅰×'+g.a);
+          return '<span class="mh-chip"><b>'+name+'</b> '+parts.join(' ')+'</span>';
+        }).join('');
+      }
+      return '<div class="mh-card">'+
+        '<div class="mh-top">'+
+          '<span class="mh-week">'+m.week+'</span>'+
+          '<span class="mh-score">'+m.score1+' — '+m.score2+'</span>'+
+          '<span class="mh-result '+resultCls+'">'+result+'</span>'+
+        '</div>'+
+        (goalChips?'<div class="mh-goals">'+goalChips+'</div>':'')+
+        (m.note?'<div class="mh-note">📝 '+m.note+'</div>':'')+
+      '</div>';
+    }).join('');
+    el.innerHTML=rows;
   }).catch(function(){el.innerHTML='<div class="no-data">Yüklenemedi.</div>';});
 }
 
@@ -748,11 +888,9 @@ function getFormEmoji(p){
 }
 function getFormBadge(p){return getFormEmoji(p);}
 
-function getPlayerPhoto(name, photoOverride){
-  // getResults'tan gelen p.photo varsa öncelikli kullan
-  if(photoOverride) return BASE_URL+photoOverride;
-  var p=PLAYERS.find(function(pl){return pl.name===name;});
-  return (p&&p.photo)?BASE_URL+p.photo:'';
+function getPlayerPhoto(name){
+  var file=PLAYER_PHOTOS[name];
+  return file?BASE_URL+file:'';
 }
 
 // ─── FIFA KARTI ──────────────────────────────────────────────────────────────
@@ -768,7 +906,7 @@ function makeFifaCard(p, pObj, rank, data, overrideScore){
   var formEmoji=getFormEmoji(p);
   var consIcon=stdDev<0.8?'🎯':stdDev<1.5?'📊':'⚡';
   var rankBadge=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
-  var photoUrl=getPlayerPhoto(p.name, p.photo);
+  var photoUrl=getPlayerPhoto(p.name);
 
   // Sol 3 stat, sağ 3 stat — FIFA düzeni
   var statKeys=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik'];
@@ -872,7 +1010,7 @@ function renderRankTab(data){
   var players=data.players.filter(function(p){return p.genelOrt!==null;});
 
   var sorted=players.map(function(p){
-    var pObj=p.pos?p:(PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']});
+    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
     var score;
     if(tabPos){
       // O sekmenin ağırlıklarıyla hesapla — oyuncunun gerçek mevkinden bağımsız
@@ -901,7 +1039,7 @@ function render11lik(data){
   var players=data.players.filter(function(p){return p.genelOrt!==null;});
   var byPos={KL:[],DEF:[],OMO:[],FRV:[]};
   players.forEach(function(p){
-    var pObj=p.pos?p:(PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']});
+    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
     var pos=normPos(pObj)[0]||'OMO';
     if(byPos[pos])byPos[pos].push({p:p,pObj:pObj,score:posRating(p,pObj)||0});
   });
@@ -1379,7 +1517,8 @@ function confirmPos(i){
   var key=_pendingPos[i];
   if(!key){closePosDropdown(i);return;}
   PLAYERS[i].pos=[key];
-  saveMevkiToSheets(PLAYERS[i].name,[key]); // Oyuncular sheet'i günceller
+  savePlayers();
+  saveMevkiToSheets(PLAYERS[i].name,[key]);
   // Chip güncelle
   var chipsEl=document.getElementById('poschips-'+i);
   if(chipsEl)chipsEl.innerHTML='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+POS[key]+'</span>';
@@ -1403,24 +1542,13 @@ function addPlayer(){
   var name=document.getElementById('newPlayerName').value.trim();
   if(!name)return;
   if(PLAYERS.find(function(p){return p.name===name;})){alert('Bu oyuncu zaten var!');return;}
-  var photo=toPhotoFilename(name);
-  var newP={name:name,pos:['OMO'],photo:photo};
-  PLAYERS.push(newP);
-  renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
+  PLAYERS.push({name:name,pos:['OMO'],photo:''});savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
   document.getElementById('newPlayerName').value='';
-  // Sheets'e kaydet
-  gs({action:'savePlayer',name:name,pos:'["OMO"]',photo:photo})
-    .catch(function(e){console.warn('Oyuncu eklenemedi:',e);});
 }
 
 function removePlayer(i){
-  var p=PLAYERS[i];
-  if(!confirm(p.name+' silinsin mi?'))return;
-  PLAYERS.splice(i,1);
-  renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
-  // Sheets'ten sil
-  gs({action:'deletePlayer',name:p.name})
-    .catch(function(e){console.warn('Oyuncu silinemedi:',e);});
+  if(!confirm(PLAYERS[i].name+' silinsin mi?'))return;
+  PLAYERS.splice(i,1);savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
 }
 
 // ─── FOTOĞRAF YÖNETİMİ ──────────────────────────────────────────────────────
@@ -1442,9 +1570,7 @@ function renderPhotoList(){
 
 function savePhoto(i,val){
   PLAYERS[i].photo=val.trim();
-  // Sheets'e kaydet
-  gs({action:'savePlayer',name:PLAYERS[i].name,photo:val.trim()})
-    .catch(function(e){console.warn('Foto kaydedilemedi:',e);});
+  savePlayers();
 }
 
 function previewPhoto(i,val){
@@ -1533,14 +1659,6 @@ function showScreen(id){
 }
 
 function san(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
-
-function toPhotoFilename(name){
-  var map={'a':'a','b':'b','c':'c','ç':'c','d':'d','e':'e','f':'f','g':'g','ğ':'g',
-           'h':'h','i':'i','ı':'i','j':'j','k':'k','l':'l','m':'m','n':'n','o':'o',
-           'ö':'o','p':'p','r':'r','s':'s','ş':'s','t':'t','u':'u','ü':'u','v':'v',
-           'y':'y','z':'z'};
-  return name.toLowerCase().split('').map(function(c){return map[c]!==undefined?map[c]:(c===' '?'':c);}).join('')+'.png';
-}
 </script>
 </body>
 </html>
