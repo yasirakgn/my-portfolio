@@ -413,37 +413,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <script>
 var GS='https://script.google.com/macros/s/AKfycbxn8T0QYMmZpU0NvVylCQLhIsv_HPPFODAvt3vKJ9EzolwYekv1L3ovyuos2DNCuwy3/exec';
-var PLAYERS=JSON.parse(localStorage.getItem('hs_players')||'null')||[
-  {name:'Ahmet',pos:['OMO'],photo:''},{name:'Eren',pos:['FRV'],photo:''},{name:'Nail',pos:['DEF'],photo:''},
-  {name:'Oguz',pos:['OMO'],photo:''},{name:'Bugay',pos:['FRV'],photo:''},{name:'Yagser',pos:['OMO'],photo:''},
-  {name:'Cemalettin',pos:['DEF'],photo:''},{name:'Edip',pos:['OMO'],photo:''},{name:'Mustafa',pos:['FRV'],photo:''},
-  {name:'Marwan',pos:['OMO'],photo:''},{name:'Ugur',pos:['DEF'],photo:''},{name:'Atay',pos:['OMO'],photo:''},
-  {name:'Baris',pos:['DEF'],photo:''},{name:'Burak',pos:['FRV'],photo:''},{name:'Ahmet Gedik',pos:['OMO'],photo:''},{name:'Orhan Abi',pos:['KL'],photo:''},
-  {name:'Ertan',pos:['DEF'],photo:''},{name:'Hasan Kerem',pos:['DEF'],photo:''}
-];
+// Oyuncular Sheets'ten yüklenir — statik liste kaldırıldı
+var PLAYERS=[];
 var BASE_URL='https://www.yagserakgun.com/players/';
-// Oyuncu fotoğraf dosyaları — GitHub /public/players/ klasörüne yükle
-var PLAYER_PHOTOS={
-  'Ahmet':      'ahmet.png',
-  'Eren':       'eren.png',
-  'Nail':       'nail.png',
-  'Oguz':       'oguz.png',
-  'Bugay':      'bugay.png',
-  'Yagser':     'yagser.png',
-  'Cemalettin': 'cemo.png',
-  'Edip':       'edip.png',
-  'Mustafa':    'mustafa.png',
-  'Marwan':     'marwan.png',
-  'Ugur':       'ugur.png',
-  'Atay':       'atay.png',
-  'Baris':      'baris.png',
-  'Burak':      'burakakbudak.png',
-  'Ahmet Gedik':'ahmetgedik.png',
-  'Orhan Abi':  'orhan.png',
-  'Ertan':      'ertan.png',
-  'Hasan Kerem':'hasankerem.png'
-  
-};
 var CRITERIA=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik','Takim Oyunu'];
 var CDISP=['Pas','Şut','Drib.','Savunma','Hız','Fizik','Takım'];
 // ─── 4 MEVKİ SİSTEMİ ───────────────────────────────────────────────────────
@@ -528,41 +500,41 @@ function simpleRating(p){
   });
   return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
 }
-var MEDALS=['🥇','🥈','🥉'];
+var MEDALS=['\u{1F947}','\u{1F948}','\u{1F949}'];
 var resultData=null,currentScores={},completedCards={},absentPlayers={},currentRater='';
 var darkMode=localStorage.getItem('hs_dark')==='1';
 
 if(darkMode)document.body.classList.add('dark');
-updateDarkBtn();buildGoalInputs();
+updateDarkBtn();
 document.getElementById('matchWeek').value=getWeekLabel();
-// Önce Sheets'ten mevkileri yükle, sonra UI'ı başlat
-loadMevkilerFromSheets(function(){
-  initSelect();renderPlayerList();
+
+// Uygulama başlangıcı: oyuncuları Sheets'ten yükle, sonra UI'ı başlat
+loadPlayersFromSheets(function(){
+  buildGoalInputs();
+  initSelect();
+  renderPlayerList();
 });
 
 function sp(k,v){localStorage.setItem(k,JSON.stringify(v));}
-function savePlayers(){sp('hs_players',PLAYERS);}
 
-// ─── MEVKİ SHEETS ENTEGRASYONU ──────────────────────────────────────────────
-function loadMevkilerFromSheets(cb){
-  gs({action:'getMevkiler'}).then(function(data){
-    if(data&&data.mevkiler){
-      // Sheets'teki mevkileri PLAYERS'a uygula
-      PLAYERS.forEach(function(p){
-        if(data.mevkiler[p.name]){
-          p.pos=data.mevkiler[p.name];
-        }
-      });
-      savePlayers(); // localStorage'ı da güncelle
+// ─── OYUNCU SHEETS ENTEGRASYONU ─────────────────────────────────────────────
+function loadPlayersFromSheets(cb){
+  gs({action:'getPlayers'}).then(function(data){
+    if(data&&data.players&&data.players.length){
+      PLAYERS=data.players;
     }
     if(cb)cb();
-  }).catch(function(){
-    if(cb)cb(); // hata olsa da devam et
+  }).catch(function(e){
+    console.warn('Oyuncular yüklenemedi, localStorage fallback:', e);
+    var saved=JSON.parse(localStorage.getItem('hs_players')||'null');
+    if(saved&&saved.length)PLAYERS=saved;
+    if(cb)cb();
   });
 }
 
 function saveMevkiToSheets(playerName, posArr){
-  gs({action:'saveMevki', name:playerName, mevki:JSON.stringify(posArr)})
+  // Oyuncular sheet'e yazar (savePlayer)
+  gs({action:'savePlayer', name:playerName, pos:JSON.stringify(posArr)})
     .catch(function(e){console.warn('Mevki kaydedilemedi:',e);});
 }
 
@@ -776,9 +748,11 @@ function getFormEmoji(p){
 }
 function getFormBadge(p){return getFormEmoji(p);}
 
-function getPlayerPhoto(name){
-  var file=PLAYER_PHOTOS[name];
-  return file?BASE_URL+file:'';
+function getPlayerPhoto(name, photoOverride){
+  // getResults'tan gelen p.photo varsa öncelikli kullan
+  if(photoOverride) return BASE_URL+photoOverride;
+  var p=PLAYERS.find(function(pl){return pl.name===name;});
+  return (p&&p.photo)?BASE_URL+p.photo:'';
 }
 
 // ─── FIFA KARTI ──────────────────────────────────────────────────────────────
@@ -794,7 +768,7 @@ function makeFifaCard(p, pObj, rank, data, overrideScore){
   var formEmoji=getFormEmoji(p);
   var consIcon=stdDev<0.8?'🎯':stdDev<1.5?'📊':'⚡';
   var rankBadge=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
-  var photoUrl=getPlayerPhoto(p.name);
+  var photoUrl=getPlayerPhoto(p.name, p.photo);
 
   // Sol 3 stat, sağ 3 stat — FIFA düzeni
   var statKeys=['Pas','Sut','Dribling','Savunma','Hiz / Kondisyon','Fizik'];
@@ -898,7 +872,7 @@ function renderRankTab(data){
   var players=data.players.filter(function(p){return p.genelOrt!==null;});
 
   var sorted=players.map(function(p){
-    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
+    var pObj=p.pos?p:(PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']});
     var score;
     if(tabPos){
       // O sekmenin ağırlıklarıyla hesapla — oyuncunun gerçek mevkinden bağımsız
@@ -927,7 +901,7 @@ function render11lik(data){
   var players=data.players.filter(function(p){return p.genelOrt!==null;});
   var byPos={KL:[],DEF:[],OMO:[],FRV:[]};
   players.forEach(function(p){
-    var pObj=PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']};
+    var pObj=p.pos?p:(PLAYERS.find(function(pl){return pl.name===p.name;})||{pos:['OMO']});
     var pos=normPos(pObj)[0]||'OMO';
     if(byPos[pos])byPos[pos].push({p:p,pObj:pObj,score:posRating(p,pObj)||0});
   });
@@ -1405,8 +1379,7 @@ function confirmPos(i){
   var key=_pendingPos[i];
   if(!key){closePosDropdown(i);return;}
   PLAYERS[i].pos=[key];
-  savePlayers();
-  saveMevkiToSheets(PLAYERS[i].name,[key]);
+  saveMevkiToSheets(PLAYERS[i].name,[key]); // Oyuncular sheet'i günceller
   // Chip güncelle
   var chipsEl=document.getElementById('poschips-'+i);
   if(chipsEl)chipsEl.innerHTML='<span style="font-size:10px;padding:2px 7px;border-radius:6px;background:var(--gd);color:var(--green);border:1px solid #1a6b3c30">'+POS[key]+'</span>';
@@ -1430,13 +1403,24 @@ function addPlayer(){
   var name=document.getElementById('newPlayerName').value.trim();
   if(!name)return;
   if(PLAYERS.find(function(p){return p.name===name;})){alert('Bu oyuncu zaten var!');return;}
-  PLAYERS.push({name:name,pos:['OMO'],photo:''});savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
+  var photo=toPhotoFilename(name);
+  var newP={name:name,pos:['OMO'],photo:photo};
+  PLAYERS.push(newP);
+  renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
   document.getElementById('newPlayerName').value='';
+  // Sheets'e kaydet
+  gs({action:'savePlayer',name:name,pos:'["OMO"]',photo:photo})
+    .catch(function(e){console.warn('Oyuncu eklenemedi:',e);});
 }
 
 function removePlayer(i){
-  if(!confirm(PLAYERS[i].name+' silinsin mi?'))return;
-  PLAYERS.splice(i,1);savePlayers();renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
+  var p=PLAYERS[i];
+  if(!confirm(p.name+' silinsin mi?'))return;
+  PLAYERS.splice(i,1);
+  renderPlayerList();renderPhotoList();initSelect();buildGoalInputs();
+  // Sheets'ten sil
+  gs({action:'deletePlayer',name:p.name})
+    .catch(function(e){console.warn('Oyuncu silinemedi:',e);});
 }
 
 // ─── FOTOĞRAF YÖNETİMİ ──────────────────────────────────────────────────────
@@ -1458,7 +1442,9 @@ function renderPhotoList(){
 
 function savePhoto(i,val){
   PLAYERS[i].photo=val.trim();
-  savePlayers();
+  // Sheets'e kaydet
+  gs({action:'savePlayer',name:PLAYERS[i].name,photo:val.trim()})
+    .catch(function(e){console.warn('Foto kaydedilemedi:',e);});
 }
 
 function previewPhoto(i,val){
@@ -1547,6 +1533,14 @@ function showScreen(id){
 }
 
 function san(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
+
+function toPhotoFilename(name){
+  var map={'a':'a','b':'b','c':'c','ç':'c','d':'d','e':'e','f':'f','g':'g','ğ':'g',
+           'h':'h','i':'i','ı':'i','j':'j','k':'k','l':'l','m':'m','n':'n','o':'o',
+           'ö':'o','p':'p','r':'r','s':'s','ş':'s','t':'t','u':'u','ü':'u','v':'v',
+           'y':'y','z':'z'};
+  return name.toLowerCase().split('').map(function(c){return map[c]!==undefined?map[c]:(c===' '?'':c);}).join('')+'.png';
+}
 </script>
 </body>
 </html>
