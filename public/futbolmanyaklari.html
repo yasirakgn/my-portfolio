@@ -341,7 +341,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
   </div>
 
   <!-- 1. PUANLA EKRANI -->
-  <div id="screen-puanla" class="screen">
+  <div id="screen-puanla" class="screen active">
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
@@ -2424,7 +2424,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
   </div>
 
   <!-- 5. YÖNETİCİ (ADMIN) EKRANI -->
-  <div id="screen-admin" class="screen active">
+  <div id="screen-admin" class="screen">
     <div class="card" style="text-align:center; background: var(--bg2); border: none;">
       <div style="font-size:36px; margin-bottom:12px;">🛡️</div>
       <div class="stitle" style="color: var(--green); font-size: 20px;">Yönetici Paneli</div>
@@ -3793,7 +3793,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
 
 <!-- BOTTOM NAVIGATION BAR -->
 <nav class="bottom-nav">
-  <button class="bnav-item" onclick="switchMainScreen('puanla', this)">
+  <button class="bnav-item active" onclick="switchMainScreen('puanla', this)">
     <span class="bnav-icon">📝</span>
     <span>Puanla</span>
   </button>
@@ -3813,7 +3813,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
     <span class="bnav-icon">🎬</span>
     <span>Yayın</span>
   </button>
-  <button class="bnav-item active" onclick="tryAdmin(this)">
+  <button class="bnav-item" onclick="tryAdmin(this)">
     <span class="bnav-icon">🛡️</span>
     <span>Yönetici</span>
   </button>
@@ -3840,7 +3840,8 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
   <div class="modal" style="max-width: 300px; padding: 32px 20px; text-align:center;">
     <div class="mtitle" style="margin-bottom: 10px; font-size: 20px;">Yetkili Girişi</div>
     <div style="font-size:13px; color:var(--text2); margin-bottom: 24px;">İşlem yapmak için PIN kodunu girin.</div>
-    <input type="password" id="adminPinInput" placeholder="••••" maxlength="10" style="text-align:center; font-size:32px; letter-spacing:12px; margin-bottom:24px; font-weight:800; background:var(--bg3); border:none;">
+    <input type="password" id="adminPinInput" placeholder="••••" maxlength="10" style="text-align:center; font-size:32px; letter-spacing:12px; margin-bottom:12px; font-weight:800; background:var(--bg3); border:none;" onkeydown="if(event.key==='Enter') checkPin()">
+    <div id="pinError" style="color:#ff3b30; font-size:13px; font-weight:600; min-height:20px; margin-bottom:16px; text-align:center;"></div>
     <div class="confirm-actions" style="justify-content:center; margin-top:0;">
       <button class="abtn" style="padding:12px 20px; font-size:14px;" onclick="document.getElementById(&#39;pinBg&#39;).classList.remove(&#39;open&#39;)">İptal</button>
       <button class="abtn pri" style="padding:12px 20px; font-size:14px;" onclick="checkPin()">Doğrula</button>
@@ -4426,53 +4427,131 @@ function loadAdminVideos() {
   }).catch(() => { el.innerHTML = '<div class="no-data">Yüklenemedi.</div>'; });
 }
 
+// ─── ADMIN GÜVENLİK ────────────────────────────────────────────────────────
+// PIN burada değil GAS'ta tutuluyor — client'ta hiçbir zaman açık PIN olmayacak
+// Brute-force koruması: 5 yanlış → 10 dakika kilit
+const ADMIN_MAX_ATTEMPTS = 5;
+const ADMIN_LOCKOUT_MS   = 10 * 60 * 1000; // 10 dakika
+
+function getAdminLock() {
+  try {
+    const d = JSON.parse(localStorage.getItem('hs_admin_lock') || '{}');
+    return d;
+  } catch(e) { return {}; }
+}
+
+function setAdminLock(data) {
+  localStorage.setItem('hs_admin_lock', JSON.stringify(data));
+}
+
+function isAdminLocked() {
+  const lock = getAdminLock();
+  if (!lock.until) return false;
+  if (Date.now() < lock.until) return true;
+  // Kilit süresi doldu — sıfırla
+  setAdminLock({});
+  return false;
+}
+
+function recordFailedAttempt() {
+  const lock = getAdminLock();
+  const attempts = (lock.attempts || 0) + 1;
+  if (attempts >= ADMIN_MAX_ATTEMPTS) {
+    setAdminLock({ attempts, until: Date.now() + ADMIN_LOCKOUT_MS });
+    return attempts;
+  }
+  setAdminLock({ attempts });
+  return attempts;
+}
+
+function clearAdminLock() {
+  setAdminLock({});
+}
+
+function isAdminLoggedIn() {
+  // Token + zaman damgası kontrolü (2 saatlik oturum)
+  try {
+    const d = JSON.parse(sessionStorage.getItem('hs_admin_session') || '{}');
+    if (!d.token || !d.expires) return false;
+    if (Date.now() > d.expires) { sessionStorage.removeItem('hs_admin_session'); return false; }
+    return true;
+  } catch(e) { return false; }
+}
+
+function setAdminSession() {
+  const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  sessionStorage.setItem('hs_admin_session', JSON.stringify({
+    token,
+    expires: Date.now() + 2 * 60 * 60 * 1000 // 2 saat
+  }));
+}
+
 function tryAdmin(btnElement) {
-  if(sessionStorage.getItem('hs_admin_logged') === '1') {
+  if (isAdminLoggedIn()) {
     switchMainScreen('admin', btnElement);
     setAdminTab('mac', document.querySelector('#screen-admin .sub-nb'));
   } else {
+    if (isAdminLocked()) {
+      const lock = getAdminLock();
+      const remaining = Math.ceil((lock.until - Date.now()) / 60000);
+      showToast(`Çok fazla hatalı deneme. ${remaining} dakika bekleyin.`, true);
+      return;
+    }
     document.getElementById('adminPinInput').value = '';
     document.getElementById('pinBg').classList.add('open');
+    document.getElementById('pinError').textContent = '';
     setTimeout(() => document.getElementById('adminPinInput').focus(), 100);
   }
 }
 
 function checkPin() {
+  if (isAdminLocked()) {
+    const lock = getAdminLock();
+    const remaining = Math.ceil((lock.until - Date.now()) / 60000);
+    document.getElementById('pinError').textContent = `Hesap kilitlendi. ${remaining} dk bekleyin.`;
+    return;
+  }
+
   const pinInput = document.getElementById('adminPinInput');
-  const pin = pinInput.value;
-  if (!pin) { showToast('Lütfen PIN girin!', true); return; }
+  const pin = pinInput.value.trim();
+  if (!pin) { document.getElementById('pinError').textContent = 'PIN boş olamaz.'; return; }
 
   const btn = document.querySelector('#pinBg .abtn.pri');
-  const originalText = btn.textContent;
-  
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span>...';
+  btn.innerHTML = '<span class="spin"></span>Doğrulanıyor...';
+  document.getElementById('pinError').textContent = '';
 
   gs({action: 'verifyPin', pin: pin}).then(d => {
     btn.disabled = false;
-    btn.textContent = originalText;
-    
+    btn.textContent = 'Doğrula';
+
     if (d.success) {
-      sessionStorage.setItem('hs_admin_logged', '1');
+      clearAdminLock();
+      setAdminSession();
       document.getElementById('pinBg').classList.remove('open');
-      showToast('Yönetici girişi başarılı.');
+      showToast('✅ Yönetici girişi başarılı.');
       const adminBtn = document.querySelectorAll('.bnav-item')[5];
       switchMainScreen('admin', adminBtn);
       setAdminTab('mac', document.querySelector('#screen-admin .sub-nb'));
     } else {
-      showToast('Hatalı PIN kodu!', true);
+      const attempts = recordFailedAttempt();
       pinInput.value = '';
       pinInput.focus();
+      if (isAdminLocked()) {
+        document.getElementById('pinError').textContent = `${ADMIN_MAX_ATTEMPTS} hatalı deneme — 10 dakika kilitlendi!`;
+      } else {
+        document.getElementById('pinError').textContent = `Hatalı PIN. (${attempts}/${ADMIN_MAX_ATTEMPTS} deneme)`;
+      }
     }
-  }).catch(e => {
+  }).catch(() => {
     btn.disabled = false;
-    btn.textContent = originalText;
-    showToast('Bağlantı hatası!', true);
+    btn.textContent = 'Doğrula';
+    document.getElementById('pinError').textContent = 'Bağlantı hatası, tekrar deneyin.';
   });
 }
 
 function logoutAdmin() {
-  sessionStorage.removeItem('hs_admin_logged');
+  sessionStorage.removeItem('hs_admin_session');
   showToast('Güvenli çıkış yapıldı.');
   document.querySelectorAll('.bnav-item')[0].click();
 }
