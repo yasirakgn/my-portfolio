@@ -5687,7 +5687,7 @@ function selectVideoWeekByUrl(week, url, title) {
 }
 
 // Relay sayfasının adresi — relay.html'i kendi sunucuna yükledikten sonra buraya tam URL'ini yaz
-const RELAY_URL = 'https://www.yagserakgun.com/relay.html';
+const RELAY_URL = './relay.html';
 
 function setYtPlayer(url, week, title) {
   _currentVideoWeek = week;
@@ -5698,6 +5698,8 @@ function setYtPlayer(url, week, title) {
   if (!wrap) return;
 
   const vid = ytVideoId(url);
+  console.log('[Yayın] Ham URL:', url);
+  console.log('[Yayın] Çıkarılan Video ID:', vid);
   const dispTitle = title || (week + ' Maç Yayını');
 
   if (!vid) {
