@@ -5686,9 +5686,6 @@ function selectVideoWeekByUrl(week, url, title) {
   if (card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-// Relay sayfasının adresi — relay.html'i kendi sunucuna yükledikten sonra buraya tam URL'ini yaz
-const RELAY_URL = './relay.html';
-
 function setYtPlayer(url, week, title) {
   _currentVideoWeek = week;
   const wrap = document.getElementById('ytWrap');
@@ -5698,8 +5695,6 @@ function setYtPlayer(url, week, title) {
   if (!wrap) return;
 
   const vid = ytVideoId(url);
-  console.log('[Yayın] Ham URL:', url);
-  console.log('[Yayın] Çıkarılan Video ID:', vid);
   const dispTitle = title || (week + ' Maç Yayını');
 
   if (!vid) {
@@ -5708,13 +5703,12 @@ function setYtPlayer(url, week, title) {
     return;
   }
 
-  // relay.html üzerinden gömme — YouTube 153 hatasını aşar
-  const relaySrc = `${RELAY_URL}?v=${encodeURIComponent(vid)}`;
-
   wrap.innerHTML = `<iframe
-    src="${relaySrc}"
+    src="https://www.youtube.com/embed/${vid}?rel=0&modestbranding=1&playsinline=1"
     style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:16px;"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+    title="${dispTitle}"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     referrerpolicy="strict-origin-when-cross-origin"
     allowfullscreen></iframe>`;
 
