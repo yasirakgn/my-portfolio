@@ -20,22 +20,46 @@
   ></iframe>
 
   <script>
-    const u      = new URL(location.href);
-    const v      = u.searchParams.get('v');
+    const u = new URL(location.href);
+    let v = u.searchParams.get('v') || '';
+
+    // Eğer v parametresi tam bir YouTube URL'si ise ID'yi çıkar
+    if (v && v.length > 11) {
+      // watch?v=ID
+      if (v.includes('v=')) {
+        v = v.split('v=')[1].split('&')[0].split('?')[0];
+      }
+      // youtu.be/ID
+      else if (v.includes('youtu.be/')) {
+        v = v.split('youtu.be/')[1].split('?')[0].split('/')[0];
+      }
+      // /embed/ID
+      else if (v.includes('/embed/')) {
+        v = v.split('/embed/')[1].split('?')[0].split('/')[0];
+      }
+      // /live/ID
+      else if (v.includes('/live/')) {
+        v = v.split('/live/')[1].split('?')[0].split('/')[0];
+      }
+    }
+
+    // Video ID kontrolü: 11 karakter, sadece harf/rakam/-/_
+    const isValidId = v && /^[A-Za-z0-9_-]{11}$/.test(v.trim());
     const player = document.getElementById('player');
 
-    if (!v) {
+    if (!isValidId) {
       player.remove();
-      document.body.innerHTML = '<div id="err">⚠️ Video ID eksik (?v=VIDEO_ID)</div>';
+      document.body.innerHTML = '<div id="err">⚠️ Geçerli bir Video ID bulunamadı.<br><small style="opacity:.6">?v=' + (v || '(boş)') + '</small></div>';
     } else {
+      v = v.trim();
       const base   = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v);
       const params = new URLSearchParams({
-        enablejsapi:     '1',
-        rel:             '0',
-        modestbranding:  '1',
-        playsinline:     u.searchParams.get('playsinline') || '1',
-        autoplay:        u.searchParams.get('autoplay')    || '0',
-        origin:          location.origin
+        enablejsapi:    '1',
+        rel:            '0',
+        modestbranding: '1',
+        playsinline:    u.searchParams.get('playsinline') || '1',
+        autoplay:       u.searchParams.get('autoplay')    || '0',
+        origin:         location.origin
       });
       player.src = `${base}?${params}`;
     }
