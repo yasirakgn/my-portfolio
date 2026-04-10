@@ -5686,6 +5686,9 @@ function selectVideoWeekByUrl(week, url, title) {
   if (card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
+// Relay sayfasının adresi — relay.html'i kendi sunucuna yükledikten sonra buraya tam URL'ini yaz
+const RELAY_URL = 'https://www.yagserakgun.com/relay.html';
+
 function setYtPlayer(url, week, title) {
   _currentVideoWeek = week;
   const wrap = document.getElementById('ytWrap');
@@ -5694,40 +5697,28 @@ function setYtPlayer(url, week, title) {
   const weekEl = document.getElementById('vVideoWeek');
   if (!wrap) return;
 
-  const embedUrl = getYtEmbedUrl(url);
-  const vid = embedUrl ? embedUrl.split('/embed/')[1] : null;
-  const ytUrl = vid ? `https://www.youtube.com/watch?v=${vid}` : url;
+  const vid = ytVideoId(url);
   const dispTitle = title || (week + ' Maç Yayını');
 
-  // Thumbnail önizleme + tıkla → YouTube popup
-  wrap.innerHTML = vid ? `
-    <div style="position:absolute;inset:0;background:url(https://img.youtube.com/vi/${vid}/maxresdefault.jpg) center/cover;border-radius:16px;cursor:pointer;" onclick="openYtPopup('${ytUrl}')">
-      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
-        <div style="width:68px;height:68px;background:rgba(255,0,0,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(255,0,0,0.5);">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="white" style="margin-left:4px"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="color:#fff;font-size:14px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.8);">${dispTitle}</div>
-        <div style="color:rgba(255,255,255,0.75);font-size:12px;font-weight:600;">▶ İzlemek için tıkla</div>
-      </div>
-    </div>` :
-    `<div class="yt-placeholder"><div class="yt-placeholder-icon">📺</div><div>Bu hafta için yayın bulunamadı</div></div>`;
-
-  if (meta) {
-    meta.style.display = vid ? 'block' : 'none';
-    if (titleEl && vid) titleEl.innerHTML = dispTitle;
-    if (weekEl && vid) weekEl.textContent = '📅 ' + week;
+  if (!vid) {
+    wrap.innerHTML = '<div class="yt-placeholder"><div class="yt-placeholder-icon">📺</div><div>Bu hafta için yayın bulunamadı</div></div>';
+    if (meta) meta.style.display = 'none';
+    return;
   }
-}
 
-function openYtPopup(url) {
-  const w = Math.min(960, screen.width - 40);
-  const h = Math.min(580, screen.height - 80);
-  const left = Math.round((screen.width - w) / 2);
-  const top  = Math.round((screen.height - h) / 2);
-  window.open(url, 'yt_popup',
-    `width=${w},height=${h},left=${left},top=${top},` +
-    `scrollbars=no,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
-  );
+  // relay.html üzerinden gömme — YouTube 153 hatasını aşar
+  const relaySrc = `${RELAY_URL}?v=${encodeURIComponent(vid)}`;
+
+  wrap.innerHTML = `<iframe
+    src="${relaySrc}"
+    style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:16px;"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+    referrerpolicy="strict-origin-when-cross-origin"
+    allowfullscreen></iframe>`;
+
+  if (meta) meta.style.display = 'block';
+  if (titleEl) titleEl.textContent = dispTitle;
+  if (weekEl) weekEl.textContent = '📅 ' + week;
 }
 
 function adminSaveVideo() {
