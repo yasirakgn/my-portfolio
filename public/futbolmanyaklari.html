@@ -312,13 +312,11 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
 
   <!-- 2. SIRALAMA EKRANI -->
   <div id="screen-siralama" class="screen">
-    <div id="participationBar" class="card" style="display:none; margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="slabel" style="margin:0">Katılım Durumu</div>
-        <span id="participationCount" style="font-size:16px;font-weight:800;color:var(--green)"></span>
+    <div id="statsInfoBand" class="card" style="display:none; margin-bottom:14px; padding:12px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div id="statsInfoText" style="font-size:13px;font-weight:700;color:var(--text2);"></div>
+        <div id="statsInfoWeekBadge" style="font-size:12px;font-weight:800;padding:6px 14px;border-radius:20px;background:var(--gd);color:var(--green);border:1px solid #10b98130;white-space:nowrap;"></div>
       </div>
-      <div id="participationList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
-      <div id="missingList" style="font-size:12px;color:var(--text3);font-weight:500;"></div>
     </div>
     <div class="sub-nav">
       <button class="sub-nb active" onclick="setRankTab('genel',this)">🏆 Genel</button>
@@ -421,6 +419,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
     <div class="sub-nav">
       <button class="sub-nb active" onclick="setAdminTab('mac',this)">⚽ Skor</button>
       <button class="sub-nb" onclick="setAdminTab('bugun',this)">📋 Bugün Gelenler</button>
+      <button class="sub-nb" onclick="setAdminTab('hakem',this)">🟡 Hakem</button>
       <button class="sub-nb" onclick="setAdminTab('yayin',this)">🎬 Yayın</button>
       <button class="sub-nb" onclick="setAdminTab('ayarlar',this)">⚙️ Oyuncular</button>
     </div>
@@ -445,6 +444,32 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
         </div>
         <button class="sub-btn" id="bugunSaveBtn" onclick="saveBugunGelenler()">💾 Kaydet</button>
         <div id="bugunSaveMsg" style="font-size:13px;color:var(--green);margin-top:10px;text-align:center;font-weight:700;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- HAKEM TAB -->
+    <div id="admin-hakem" class="sub-screen">
+      <div class="card">
+        <div class="slabel">Bu Hafta</div>
+        <div class="stitle" style="margin-bottom:4px;">🟡 Hakem Ata</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.5;">
+          Hakem olarak seçilen oyuncu oy kullanabilir, ancak kendisine oy verilemez. Hakem seçilmezse herkes birbirini puanlayabilir.
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;">
+          Hafta: <b id="hakemWeekLabel" style="color:var(--green)"></b>
+        </div>
+        <div id="hakemCurrentInfo" style="display:none;font-size:13px;font-weight:700;background:var(--gd);color:var(--green);border:1px solid #10b98130;padding:10px 14px;border-radius:14px;margin-bottom:16px;"></div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">Hakem Seç:</div>
+          <div id="hakemPlayerList" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px;">
+            <span class="spin"></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="sub-btn" id="hakemSaveBtn" onclick="saveHakemToSheet()" style="flex:1;">💾 Kaydet</button>
+          <button class="abtn" onclick="clearHakem()" style="margin:0;padding:14px 16px;font-weight:700;color:#ff3b30;border-color:#ff3b30;background:rgba(255,59,48,0.05);">✕ Kaldır</button>
+        </div>
+        <div id="hakemSaveMsg" style="font-size:13px;color:var(--green);margin-top:10px;text-align:center;font-weight:700;display:none;"></div>
       </div>
     </div>
 
@@ -639,12 +664,13 @@ const GS = 'https://script.google.com/macros/s/AKfycbxn8T0QYMmZpU0NvVylCQLhIsv_H
 const BASE_URL = 'https://www.yagserakgun.com/players/';
 
 // ─── PLAYERS VERSION (cache temizleme) ────────────────────────────────────
-const PLAYERS_VERSION = '3';
+const PLAYERS_VERSION = '4';
 if (localStorage.getItem('hs_players_version') !== PLAYERS_VERSION) {
   localStorage.removeItem('hs_players');
   localStorage.removeItem('hs_players_cache');
   localStorage.removeItem('hs_mevkiler_cache');
   localStorage.removeItem('hs_today_players_cache');
+  localStorage.removeItem('hs_hakem_cache');
   localStorage.setItem('hs_players_version', PLAYERS_VERSION);
 }
 
@@ -710,6 +736,8 @@ let _bugunSelected = {};
 let timerInterval, timerSeconds = 0, isTimerRunning = false;
 let _videosData = null;
 let _currentVideoWeek = null;
+let _hakemData = { week: '', hakem: '' };
+let _selectedHakem = '';
 
 if (darkMode) document.body.classList.add('dark');
 
@@ -925,14 +953,17 @@ function buildCards() {
   if (cached) {
     try { const cd = JSON.parse(cached); cachedWeek = cd.week; cachedList = cd.players; } catch(e) {}
   }
+  const hakemCached = localStorage.getItem('hs_hakem_cache');
+  let cachedHakemWeek = null, cachedHakemName = '';
+  if (hakemCached) {
+    try { const hd = JSON.parse(hakemCached); cachedHakemWeek = hd.week; cachedHakemName = hd.hakem || ''; } catch(e) {}
+  }
 
-  const renderWithList = (activePlayers) => {
-    const list = (activePlayers && activePlayers.length)
-      ? PLAYERS.filter(p => activePlayers.includes(p.name) && p.name !== currentRater)
-      : PLAYERS.filter(p => p.name !== currentRater);
+  const renderWithData = (activePlayers, hakemName) => {
+    const isHakem = (hakemName && currentRater === hakemName);
 
-    // Kullanıcı maça geldi mi kontrol et
-    if (activePlayers && activePlayers.length && !activePlayers.includes(currentRater)) {
+    // Kullanıcı maça geldi mi kontrol et (hakem ise bypass)
+    if (!isHakem && activePlayers && activePlayers.length && !activePlayers.includes(currentRater)) {
       c.innerHTML = `<div class="no-data" style="border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,0.05);">
         ⛔ Bu hafta (${week}) maça gelmediğin olarak işaretlendin.<br>
         <span style="font-size:12px;color:var(--text3);display:block;margin-top:8px;">Yönetici ile iletişime geç.</span>
@@ -944,7 +975,21 @@ function buildCards() {
     document.getElementById('submitArea').style.display = 'block';
     document.getElementById('progressWrap').style.display = 'block';
 
-    c.innerHTML = '';
+    // Hakem bilgi bandı
+    let hakemBanner = '';
+    if (isHakem) {
+      hakemBanner = `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #f59e0b;border-radius:16px;padding:14px 16px;margin-bottom:16px;">
+        <span style="font-size:28px;">🟡</span>
+        <div><div style="font-size:14px;font-weight:800;color:#92400e;">Bu Hafta Hakemsin!</div><div style="font-size:12px;color:#b45309;margin-top:2px;font-weight:600;">Oy kullanabilirsin ama sana oy verilemez.</div></div>
+      </div>`;
+    }
+
+    // Puanlanacak oyuncular: aktif listeden kendini ve hakem ise hakemi çıkar
+    const list = (activePlayers && activePlayers.length)
+      ? PLAYERS.filter(p => activePlayers.includes(p.name) && p.name !== currentRater && p.name !== hakemName)
+      : PLAYERS.filter(p => p.name !== currentRater && p.name !== hakemName);
+
+    c.innerHTML = hakemBanner;
     list.forEach(p => {
       const pid = san(p.name);
       const card = document.createElement('div');
@@ -970,13 +1015,33 @@ function buildCards() {
     updateProgress();
   };
 
-  if (cachedWeek === week && cachedList) { renderWithList(cachedList); return; }
+  // Hakem + bugün gelenler cache kontrolü
+  const haveTodayCache = (cachedWeek === week && cachedList);
+  const haveHakemCache = (cachedHakemWeek === week);
 
-  gs({ action: 'getTodayPlayers', week }).then(data => {
-    const players = data.players || [];
+  if (haveTodayCache && haveHakemCache) {
+    renderWithData(cachedList, cachedHakemName);
+    // arka planda taze veri çek
+    Promise.all([
+      gs({ action: 'getTodayPlayers', week }),
+      gs({ action: 'getHakem', week })
+    ]).then(([tdData, hkData]) => {
+      localStorage.setItem('hs_today_players_cache', JSON.stringify({ week, players: tdData.players || [] }));
+      localStorage.setItem('hs_hakem_cache', JSON.stringify({ week, hakem: hkData.hakem || '' }));
+    }).catch(() => {});
+    return;
+  }
+
+  Promise.all([
+    gs({ action: 'getTodayPlayers', week }),
+    gs({ action: 'getHakem', week })
+  ]).then(([tdData, hkData]) => {
+    const players = tdData.players || [];
+    const hakem = hkData.hakem || '';
     localStorage.setItem('hs_today_players_cache', JSON.stringify({ week, players }));
-    renderWithList(players);
-  }).catch(() => renderWithList([]));
+    localStorage.setItem('hs_hakem_cache', JSON.stringify({ week, hakem }));
+    renderWithData(players, hakem);
+  }).catch(() => renderWithData([], ''));
 }
 
 // ─── SLIDER / PUANLAMA ───────────────────────────────────────────────────────
@@ -1094,6 +1159,7 @@ function setAdminTab(id, btnElement) {
   if (id === 'mac') loadMatchHistory();
   if (id === 'ayarlar') renderPlayerList();
   if (id === 'bugun') loadBugunTab();
+  if (id === 'hakem') loadHakemTab();
   if (id === 'yayin') {
     const hint = document.getElementById('adminVideoWeekHint');
     if (hint) hint.textContent = getWeekLabel();
@@ -1163,6 +1229,76 @@ function saveBugunGelenler() {
       showToast(`${presentList.length} oyuncu bu hafta için işaretlendi!`);
     }
   }).catch(() => { btn.disabled = false; btn.textContent = '💾 Kaydet'; showToast('Kayıt hatası.', true); });
+}
+
+// ─── HAKEM (ADMİN) ───────────────────────────────────────────────────────────
+function loadHakemTab() {
+  const week = getWeekLabel();
+  document.getElementById('hakemWeekLabel').textContent = week;
+  const el = document.getElementById('hakemPlayerList');
+  el.innerHTML = '<span class="spin"></span>';
+  _selectedHakem = '';
+  gs({ action: 'getHakem', week }).then(data => {
+    _selectedHakem = data.hakem || '';
+    _hakemData = { week, hakem: _selectedHakem };
+    const infoEl = document.getElementById('hakemCurrentInfo');
+    if (_selectedHakem) {
+      infoEl.style.display = 'block';
+      infoEl.textContent = `🟡 Mevcut hakem: ${_selectedHakem}`;
+    } else {
+      infoEl.style.display = 'none';
+    }
+    renderHakemPlayerList();
+  }).catch(() => { _selectedHakem = ''; renderHakemPlayerList(); });
+}
+function renderHakemPlayerList() {
+  const el = document.getElementById('hakemPlayerList');
+  el.innerHTML = PLAYERS.map(p => {
+    const on = _selectedHakem === p.name;
+    return `<button id="hk-${san(p.name)}" onclick="selectHakem('${p.name}')"
+      style="font-size:13px;font-weight:700;padding:10px 16px;border-radius:20px;cursor:pointer;font-family:inherit;transition:all .2s;
+             border:2px solid ${on?'#f59e0b':'var(--border)'};
+             background:${on?'#fef3c7':'var(--bg2)'};
+             color:${on?'#92400e':'var(--text2)'};
+             box-shadow:${on?'0 4px 10px rgba(245,158,11,.25)':'var(--sh)'}">
+      ${on?'🟡 ':''}${p.name}
+    </button>`;
+  }).join('');
+}
+function selectHakem(name) {
+  _selectedHakem = (_selectedHakem === name) ? '' : name;
+  renderHakemPlayerList();
+}
+function saveHakemToSheet() {
+  const week = getWeekLabel();
+  const btn = document.getElementById('hakemSaveBtn');
+  const msg = document.getElementById('hakemSaveMsg');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  msg.style.display = 'none';
+  gs({ action: 'saveHakem', week, hakem: _selectedHakem }).then(d => {
+    btn.disabled = false; btn.textContent = '💾 Kaydet';
+    if (d.success) {
+      _hakemData = { week, hakem: _selectedHakem };
+      localStorage.setItem('hs_hakem_cache', JSON.stringify({ week, hakem: _selectedHakem }));
+      const infoEl = document.getElementById('hakemCurrentInfo');
+      if (_selectedHakem) {
+        infoEl.style.display = 'block';
+        infoEl.textContent = `🟡 Mevcut hakem: ${_selectedHakem}`;
+        msg.textContent = `✅ ${_selectedHakem} hakem olarak atandı!`;
+        showToast(`${_selectedHakem} bu hafta hakem olarak atandı!`);
+      } else {
+        infoEl.style.display = 'none';
+        msg.textContent = `✅ Hakem kaldırıldı.`;
+        showToast('Hakem kaldırıldı.');
+      }
+      msg.style.display = 'block';
+    }
+  }).catch(() => { btn.disabled = false; btn.textContent = '💾 Kaydet'; showToast('Kayıt hatası.', true); });
+}
+function clearHakem() {
+  _selectedHakem = '';
+  renderHakemPlayerList();
+  saveHakemToSheet();
 }
 
 // ─── RESULTS ─────────────────────────────────────────────────────────────────
@@ -1317,14 +1453,14 @@ function renderSonuc() {
     _sonucData = data; grid.innerHTML = '';
     if (!data || !data.players) { nd.style.display = 'block'; return; }
     if (data.weeks && data.weeks.length) {
-      const wi = data.weeks.length - 1;
-      const lastWeek = data.weeks[wi];
-      const rated = data.players.filter(p => p.weeklyGenels[wi] != null).map(p => p.name);
-      const notRated = PLAYERS.map(p => p.name).filter(n => !rated.includes(n));
-      document.getElementById('participationBar').style.display = 'block';
-      document.getElementById('participationCount').textContent = `${rated.length}/${PLAYERS.length} Kişi (${lastWeek})`;
-      document.getElementById('participationList').innerHTML = rated.map(n => `<span style="font-size:11px;padding:6px 12px;border-radius:12px;background:var(--gd);color:var(--green);border:1px solid #10b98130;font-weight:800;">✓ ${n}</span>`).join('');
-      document.getElementById('missingList').innerHTML = notRated.length ? `Beklenenler: <b>${notRated.join(', ')}</b>` : '';
+      const totalWeeks = data.weeks.length;
+      const lastWeek = data.weeks[totalWeeks - 1];
+      document.getElementById('statsInfoBand').style.display = 'block';
+      const infoText = totalWeeks === 1
+        ? `Son 1 haftanın verilerine göre`
+        : `Son ${totalWeeks} haftanın ortalamasına göre`;
+      document.getElementById('statsInfoText').textContent = infoText;
+      document.getElementById('statsInfoWeekBadge').textContent = `📅 ${lastWeek}`;
     }
     renderRankTab(data);
   });
