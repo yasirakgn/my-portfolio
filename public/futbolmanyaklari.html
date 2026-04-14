@@ -972,6 +972,42 @@ function buildCards() {
       document.getElementById('progressWrap').style.display = 'none';
       return;
     }
+
+    // Bu hafta oy kullandı mı? (önce cache, sonra sheets)
+    const votedCacheKey = `hs_voted_${week}_${currentRater}`;
+    const alreadyVotedCache = localStorage.getItem(votedCacheKey) === '1';
+
+    const showVotedBlock = () => {
+      c.innerHTML = `<div style="text-align:center;padding:32px 16px;background:var(--bg2);border-radius:var(--r);border:2px solid var(--green);box-shadow:var(--sh-card);">
+        <div style="font-size:48px;margin-bottom:16px;">✅</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;">Bu Hafta Oyladın!</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;">
+          <b style="color:var(--green)">${week}</b> haftası için değerlendirmeni zaten tamamladın.<br>
+          Sıralama ekranından sonuçlarını görebilirsin.
+        </div>
+        <div style="font-size:12px;color:var(--text3);background:var(--bg3);padding:10px 14px;border-radius:12px;font-weight:600;">
+          ⚠️ Aynı haftada tekrar oy verilemez. Hata olduğunu düşünüyorsan yönetici ile iletişime geç.
+        </div>
+      </div>`;
+      document.getElementById('submitArea').style.display = 'none';
+      document.getElementById('progressWrap').style.display = 'none';
+    };
+
+    if (alreadyVotedCache) { showVotedBlock(); return; }
+
+    // Cache yoksa sheets'ten kontrol et
+    gs({ action: 'checkVoted', week, rater: currentRater }).then(vd => {
+      if (vd.voted) {
+        localStorage.setItem(votedCacheKey, '1');
+        showVotedBlock();
+        return;
+      }
+      // Oy kullanmamış — kartları göster
+      renderCards(activePlayers, hakemName, isHakem);
+    }).catch(() => renderCards(activePlayers, hakemName, isHakem));
+  };
+
+  const renderCards = (activePlayers, hakemName, isHakem) => {
     document.getElementById('submitArea').style.display = 'block';
     document.getElementById('progressWrap').style.display = 'block';
 
@@ -984,7 +1020,6 @@ function buildCards() {
       </div>`;
     }
 
-    // Puanlanacak oyuncular: aktif listeden kendini ve hakem ise hakemi çıkar
     const list = (activePlayers && activePlayers.length)
       ? PLAYERS.filter(p => activePlayers.includes(p.name) && p.name !== currentRater && p.name !== hakemName)
       : PLAYERS.filter(p => p.name !== currentRater && p.name !== hakemName);
@@ -1093,16 +1128,24 @@ function updateProgress() {
 function submitRatings() {
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>İşleniyor...';
+  const week = getWeekLabel();
   const filtered = {};
   Object.keys(currentScores).forEach(p => { if (!absentPlayers[p]) filtered[p] = currentScores[p]; });
-  gs({action:'save', rater:currentRater, week:getWeekLabel(), scores:JSON.stringify(filtered), absent:Object.keys(absentPlayers).join(',')})
+  gs({action:'save', rater:currentRater, week, scores:JSON.stringify(filtered), absent:Object.keys(absentPlayers).join(',')})
     .then(d => {
       if (d.success) {
+        // Oy kullanıldı olarak işaretle
+        localStorage.setItem(`hs_voted_${week}_${currentRater}`, '1');
         btn.textContent = 'Puanları Gönder';
         localStorage.removeItem('hs_results_cache');
         resultData = null;
         loadResults(() => {}, true);
         document.getElementById('successPopup').style.display = 'flex';
+      } else if (d.alreadyVoted) {
+        localStorage.setItem(`hs_voted_${week}_${currentRater}`, '1');
+        showToast('Bu hafta zaten oy kullandınız!', true);
+        btn.disabled = false; btn.textContent = 'Puanları Gönder';
+        buildCards(); // Voted ekranı göster
       } else {
         showToast('Bir hata oluştu, lütfen tekrar deneyin.', true);
         btn.disabled = false; btn.textContent = 'Puanları Gönder';
@@ -1625,38 +1668,176 @@ function renderComparison() {
   const el = document.getElementById('cmpContent');
   if (!a || !b) { el.innerHTML = ''; return; }
   if (a === b) { showToast('Farklı iki oyuncu seçmelisiniz.', true); el.innerHTML = ''; return; }
-  el.innerHTML = '<div class="no-data"><span class="spin"></span>Kıyaslanıyor...</div>';
+  el.innerHTML = '<div class="no-data"><span class="spin"></span>Detaylı analiz hazırlanıyor...</div>';
   loadResults(data => {
     if (!data || !data.players) { el.innerHTML = '<div class="no-data">Veri yok.</div>'; return; }
     const pa = data.players.find(p => p.name === a), pb = data.players.find(p => p.name === b);
-    if (!pa || !pb) { el.innerHTML = '<div class="no-data">Yeterli veri yok.</div>'; return; }
+    if (!pa || !pb) { el.innerHTML = '<div class="no-data">Yeterli veri yok — iki oyuncunun da puanı olmalı.</div>'; return; }
     const paObj = PLAYERS.find(pl => pl.name === a) || { pos: ['OMO'] };
     const pbObj = PLAYERS.find(pl => pl.name === b) || { pos: ['OMO'] };
-    const aRating = posRating(pa, paObj) || 0, bRating = posRating(pb, pbObj) || 0;
+    const aRating = Math.min(99, Math.round((posRating(pa, paObj) || 0) * 10));
+    const bRating = Math.min(99, Math.round((posRating(pb, pbObj) || 0) * 10));
     const getKrit = (pdata, c) => {
       let vals = [];
       if (pdata.weeklyKriterler) Object.values(pdata.weeklyKriterler).forEach(wk => { if (wk && wk[c] != null) vals.push(+wk[c]); });
       return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : 0;
     };
-    const rows = CRITERIA.map((c, ci) => {
-      const av = getKrit(pa, c), bv = getKrit(pb, c);
-      const max = Math.max(av, bv) || 1;
-      const lw = (av / max * 50).toFixed(0), rw = (bv / max * 50).toFixed(0);
-      const winner = av > bv ? 'l' : bv > av ? 'r' : '';
-      return `<div style="display:grid;grid-template-columns:40px 1fr 40px;align-items:center;gap:8px;margin-bottom:12px;">
-        <span style="text-align:right;${winner==='l'?'font-size:18px;font-weight:900;color:var(--text);':'font-size:15px;font-weight:600;color:var(--text3);'}">${av.toFixed(1)}</span>
-        <div><div style="font-size:11px;text-align:center;color:var(--text2);margin-bottom:6px;font-weight:800;letter-spacing:1px">${CDISP[ci]}</div><div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--bg3);"><div style="width:${lw}%;background:var(--green);margin-left:auto;border-radius:4px 0 0 4px"></div><div style="width:4px;background:var(--bg2)"></div><div style="width:${rw}%;background:#3b82f6;border-radius:0 4px 4px 0"></div></div></div>
-        <span style="${winner==='r'?'font-size:18px;font-weight:900;color:#3b82f6;':'font-size:15px;font-weight:600;color:var(--text3);'}">${bv.toFixed(1)}</span>
+    const aVals = CRITERIA.map(c => getKrit(pa, c));
+    const bVals = CRITERIA.map(c => getKrit(pb, c));
+
+    // ── Radar SVG ──────────────────────────────────────────────────────
+    const cx = 110, cy = 110, r = 75, n = CRITERIA.length;
+    const angle = (i) => (i / n) * 2 * Math.PI - Math.PI / 2;
+    const pt = (val, i) => ({ x: cx + r * (val/10) * Math.cos(angle(i)), y: cy + r * (val/10) * Math.sin(angle(i)) });
+    const polyA = aVals.map((v,i) => pt(v,i)).map(p=>`${p.x},${p.y}`).join(' ');
+    const polyB = bVals.map((v,i) => pt(v,i)).map(p=>`${p.x},${p.y}`).join(' ');
+    const gridLines = [0.25,0.5,0.75,1].map(f => {
+      const pts = Array.from({length:n},(_,i)=>`${cx+r*f*Math.cos(angle(i))},${cy+r*f*Math.sin(angle(i))}`).join(' ');
+      return `<polygon points="${pts}" fill="none" stroke="var(--border)" stroke-width="1" opacity="0.6"/>`;
+    }).join('');
+    const axes = Array.from({length:n},(_,i)=>`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(angle(i))}" y2="${cy+r*Math.sin(angle(i))}" stroke="var(--border)" stroke-width="1" opacity="0.6"/>`).join('');
+    const labels = CRITERIA.map((c,i)=>{
+      const lx = cx + (r+22)*Math.cos(angle(i)), ly = cy + (r+22)*Math.sin(angle(i));
+      const dominantBaseline = ly < cy-5 ? 'auto' : ly > cy+5 ? 'hanging' : 'middle';
+      return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="${dominantBaseline}" font-size="9.5" font-weight="700" fill="var(--text2)">${CDISP[i]}</text>`;
+    }).join('');
+    const dotsA = aVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="var(--green)"/>`; }).join('');
+    const dotsB = bVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#3b82f6"/>`; }).join('');
+    const radarSVG = `<svg viewBox="0 0 220 220" width="100%" style="max-width:280px;display:block;margin:0 auto;">
+      <defs>
+        <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".35"/><stop offset="100%" stop-color="var(--green)" stop-opacity=".1"/></linearGradient>
+        <linearGradient id="gb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".35"/><stop offset="100%" stop-color="#3b82f6" stop-opacity=".1"/></linearGradient>
+      </defs>
+      ${gridLines}${axes}
+      <polygon points="${polyA}" fill="url(#ga)" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>
+      <polygon points="${polyB}" fill="url(#gb)" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+      ${dotsA}${dotsB}${labels}
+    </svg>`;
+
+    // ── Form trend (son 5 hafta) ────────────────────────────────────────
+    const last5 = data.weeks.slice(-5);
+    const trendLine = (pdata, color) => {
+      const pts = last5.map((w,i) => {
+        const wi = data.weeks.indexOf(w);
+        const v = pdata.weeklyGenels[wi];
+        return { x: 20 + i * (220/Math.max(last5.length-1,1)), y: v !== null ? 120 - (v * 10) : null, v };
+      });
+      const valid = pts.filter(p=>p.y!==null);
+      if (!valid.length) return '';
+      const path = valid.map((p,i)=>(i===0?'M':'L')+p.x+' '+p.y).join(' ');
+      const dots = pts.map(p=>p.y!==null?`<circle cx="${p.x}" cy="${p.y}" r="4" fill="${color}" stroke="var(--bg2)" stroke-width="1.5"/>`:'').join('');
+      const scores = pts.map(p=>p.y!==null?`<text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="9" font-weight="800" fill="${color}">${(p.v*10).toFixed(0)}</text>`:'').join('');
+      return `<path d="${path}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>${dots}${scores}`;
+    };
+    const weekLabels = last5.map((w,i)=>`<text x="${20+i*(220/Math.max(last5.length-1,1))}" y="138" text-anchor="middle" font-size="8" fill="var(--text3)" font-weight="600">${w.replace(/\d{4}-/,'')}</text>`).join('');
+    const trendSVG = `<svg viewBox="0 0 240 150" width="100%" style="display:block;">
+      <line x1="15" y1="20" x2="15" y2="125" stroke="var(--border)" stroke-width="1"/>
+      <line x1="15" y1="125" x2="235" y2="125" stroke="var(--border)" stroke-width="1"/>
+      ${[10,7,5,3].map(v=>`<text x="10" y="${125-(v*10)}" text-anchor="end" font-size="8" fill="var(--text3)" dominant-baseline="middle">${v*10}</text><line x1="15" y1="${125-(v*10)}" x2="235" y2="${125-(v*10)}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3"/>`).join('')}
+      ${trendLine(pa, 'var(--green)')}${trendLine(pb, '#3b82f6')}
+      ${weekLabels}
+    </svg>`;
+
+    // ── Kritere göre duel barları ──────────────────────────────────────
+    const duelRows = CRITERIA.map((c,ci) => {
+      const av = aVals[ci], bv = bVals[ci], maxv = Math.max(av, bv, 0.1);
+      const aW = Math.round(av/maxv*46), bW = Math.round(bv/maxv*46);
+      const winner = av > bv ? 'a' : bv > av ? 'b' : '';
+      return `<div style="display:grid;grid-template-columns:32px 1fr 60px 1fr 32px;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="text-align:right;font-size:${winner==='a'?'16':'13'}px;font-weight:${winner==='a'?900:600};color:${winner==='a'?'var(--green)':'var(--text3)'};">${av.toFixed(1)}</span>
+        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;display:flex;justify-content:flex-end;"><div style="width:${aW}%;background:var(--green);border-radius:4px;transition:width .5s;"></div></div>
+        <div style="text-align:center;font-size:10px;font-weight:800;color:var(--text2);letter-spacing:.5px;">${CDISP[ci]}</div>
+        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;"><div style="width:${bW}%;background:#3b82f6;border-radius:4px;transition:width .5s;"></div></div>
+        <span style="font-size:${winner==='b'?'16':'13'}px;font-weight:${winner==='b'?900:600};color:${winner==='b'?'#3b82f6':'var(--text3)'};">${bv.toFixed(1)}</span>
       </div>`;
     }).join('');
-    el.innerHTML = `<div class="card">
-      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border)">
-        <div style="text-align:center"><div class="av" style="margin:0 auto 12px;width:56px;height:56px;font-size:20px;">${a.charAt(0)}</div><div style="font-weight:900;font-size:16px;">${a}</div><div style="font-size:32px;font-weight:900;color:var(--green);margin-top:8px;">${Math.round(aRating*10)}</div></div>
-        <div style="font-size:24px;color:var(--text3);font-weight:900;background:var(--bg3);padding:12px 16px;border-radius:20px;">VS</div>
-        <div style="text-align:center"><div class="av" style="margin:0 auto 12px;width:56px;height:56px;font-size:20px;background:#eff6ff;color:#3b82f6;">${b.charAt(0)}</div><div style="font-weight:900;font-size:16px;">${b}</div><div style="font-size:32px;font-weight:900;color:#3b82f6;margin-top:8px;">${Math.round(bRating*10)}</div></div>
+
+    // ── Otomatik Yorum ──────────────────────────────────────────────────
+    const aWins = aVals.filter((v,i)=>v>bVals[i]).length;
+    const bWins = bVals.filter((v,i)=>v>aVals[i]).length;
+    const aBestCrit = CRITERIA[aVals.indexOf(Math.max(...aVals))];
+    const bBestCrit = CRITERIA[bVals.indexOf(Math.max(...bVals))];
+    const aWorstCrit = CRITERIA[aVals.indexOf(Math.min(...aVals))];
+    const bWorstCrit = CRITERIA[bVals.indexOf(Math.min(...bVals))];
+    const aFormTrend = (() => { const v = pa.weeklyGenels.filter(x=>x!=null); if (v.length<2) return 'stabil'; return v[v.length-1]>v[v.length-2]?'yükselen':'düşen'; })();
+    const bFormTrend = (() => { const v = pb.weeklyGenels.filter(x=>x!=null); if (v.length<2) return 'stabil'; return v[v.length-1]>v[v.length-2]?'yükselen':'düşen'; })();
+    const overallWinner = aRating > bRating ? a : bRating > aRating ? b : null;
+    const critLabels = { 'Pas':'Pas', 'Sut':'Şut', 'Dribling':'Dribling', 'Savunma':'Savunma', 'Hiz / Kondisyon':'Hız/Kondisyon', 'Fizik':'Fizik', 'Takim Oyunu':'Takım Oyunu' };
+
+    const commentary = `<div style="background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:20px;padding:18px;margin-top:4px;">
+      <div style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🤖 Otomatik Analiz</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.7;">
+        ${overallWinner
+          ? `<b style="color:${overallWinner===a?'var(--green)':'#3b82f6'}">${overallWinner}</b>, <b>${overallWinner===a?bRating-aRating<0?Math.abs(aRating-bRating):aRating-bRating:Math.abs(bRating-aRating)}</b> puanlık farkla genel değerlendirmede öne çıkıyor.`
+          : `İki oyuncu da aynı genel puanda! Oldukça dengeli bir duel.`}
+        ${a}, <b>${aWins}</b> kriterde; ${b} ise <b>${bWins}</b> kriterde üstün.
       </div>
-      ${rows}
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text2);font-weight:600;">
+        <div>💚 <b style="color:var(--green)">${a}</b>'nın en güçlü yönü: <b>${critLabels[aBestCrit]}</b> (${Math.max(...aVals).toFixed(1)}) — en çalışması gereken: ${critLabels[aWorstCrit]}</div>
+        <div>🔵 <b style="color:#3b82f6">${b}</b>'nın en güçlü yönü: <b>${critLabels[bBestCrit]}</b> (${Math.max(...bVals).toFixed(1)}) — en çalışması gereken: ${critLabels[bWorstCrit]}</div>
+        <div>📈 Form: <b style="color:var(--green)">${a}</b> <span style="color:${aFormTrend==='yükselen'?'var(--green)':'#f97316'}">${aFormTrend==='yükselen'?'↑ yükseliyor':'↓ düşüyor'}</span> — <b style="color:#3b82f6">${b}</b> <span style="color:${bFormTrend==='yükselen'?'var(--green)':'#f97316'}">${bFormTrend==='yükselen'?'↑ yükseliyor':'↓ düşüyor'}</span></div>
+      </div>
     </div>`;
+
+    // ── Fotoğraflı header ──────────────────────────────────────────────
+    const photoA = getPlayerPhoto(a);
+    const photoB = getPlayerPhoto(b);
+    const avatarA = photoA ? `<div style="width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 10px;border:3px solid var(--green);box-shadow:0 4px 12px var(--gd);"><img src="${photoA}" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.style.display='none'"></div>` : `<div class="av" style="width:64px;height:64px;font-size:22px;margin:0 auto 10px;border:3px solid var(--green);">${a.charAt(0)}</div>`;
+    const avatarB = photoB ? `<div style="width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 10px;border:3px solid #3b82f6;box-shadow:0 4px 12px rgba(59,130,246,.2);"><img src="${photoB}" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.style.display='none'"></div>` : `<div class="av" style="width:64px;height:64px;font-size:22px;margin:0 auto 10px;border:3px solid #3b82f6;background:#eff6ff;color:#3b82f6;">${b.charAt(0)}</div>`;
+
+    el.innerHTML = `
+      <!-- Header -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;gap:8px;">
+          <div style="text-align:center;">${avatarA}
+            <div style="font-weight:900;font-size:15px;margin-bottom:4px;">${a}</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:8px;">${posLabel(paObj)}</div>
+            <div style="font-size:36px;font-weight:900;color:var(--green);letter-spacing:-1px;line-height:1;">${aRating}</div>
+            <div style="font-size:10px;color:var(--text3);font-weight:700;margin-top:2px;">PUAN</div>
+          </div>
+          <div style="text-align:center;font-size:13px;font-weight:900;color:var(--text3);background:var(--bg3);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;margin:0 auto;">VS</div>
+          <div style="text-align:center;">${avatarB}
+            <div style="font-weight:900;font-size:15px;margin-bottom:4px;">${b}</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:8px;">${posLabel(pbObj)}</div>
+            <div style="font-size:36px;font-weight:900;color:#3b82f6;letter-spacing:-1px;line-height:1;">${bRating}</div>
+            <div style="font-size:10px;color:var(--text3);font-weight:700;margin-top:2px;">PUAN</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Radar -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="slabel" style="margin-bottom:12px;">🕸️ Beceri Radari</div>
+        <div style="display:flex;gap:16px;justify-content:center;margin-bottom:12px;">
+          <span style="font-size:11px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:5px;"><span style="width:12px;height:3px;background:var(--green);border-radius:2px;display:inline-block;"></span>${a}</span>
+          <span style="font-size:11px;font-weight:800;color:#3b82f6;display:flex;align-items:center;gap:5px;"><span style="width:12px;height:3px;background:#3b82f6;border-radius:2px;display:inline-block;"></span>${b}</span>
+        </div>
+        ${radarSVG}
+      </div>
+
+      <!-- Duel Bars -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="slabel" style="margin-bottom:16px;">⚔️ Kritere Göre Karşılaştırma</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:12px;font-weight:800;">
+          <span style="color:var(--green);">${a}</span>
+          <span style="color:#3b82f6;">${b}</span>
+        </div>
+        ${duelRows}
+      </div>
+
+      <!-- Form Trend -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="slabel" style="margin-bottom:4px;">📈 Son 5 Hafta Form Trendi</div>
+        <div style="display:flex;gap:16px;margin-bottom:8px;">
+          <span style="font-size:11px;font-weight:800;color:var(--green);">— ${a}</span>
+          <span style="font-size:11px;font-weight:800;color:#3b82f6;">— ${b}</span>
+        </div>
+        ${trendSVG}
+      </div>
+
+      <!-- AI Yorum -->
+      ${commentary}
+    `;
   });
 }
 
@@ -1733,26 +1914,83 @@ function loadMatchHistory() {
   const render = (data) => {
     let html = '<div class="no-data">Kayıtlı maç bulunamadı.</div>';
     if (data && data.matches && data.matches.length) {
-      html = data.matches.slice().reverse().map(m => {
+      // İstatistikler özeti
+      const totalMatches = data.matches.length;
+      const totalGoals = data.matches.reduce((s,m)=> s + (+m.score1||0) + (+m.score2||0), 0);
+      const w1 = data.matches.filter(m=>+m.score1>+m.score2).length;
+      const w2 = data.matches.filter(m=>+m.score2>+m.score1).length;
+      const draws = data.matches.filter(m=>+m.score1===+m.score2).length;
+      html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">
+        ${[['🏟️','Maç',totalMatches],['⚽','Gol',totalGoals],['⚪','Beyaz',w1],['🔵','Renkli',w2]].map(([ic,lb,vl])=>
+          `<div style="text-align:center;padding:12px 6px;background:var(--bg2);border-radius:14px;box-shadow:var(--sh-card);border:1px solid var(--border);">
+            <div style="font-size:18px;margin-bottom:4px;">${ic}</div>
+            <div style="font-size:20px;font-weight:900;color:var(--text);letter-spacing:-0.5px;">${vl}</div>
+            <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">${lb}</div>
+          </div>`).join('')}
+      </div>`;
+
+      html += data.matches.slice().reverse().map(m => {
         const s1 = +m.score1, s2 = +m.score2;
-        let goalChips = '';
-        if (m.goals && Object.keys(m.goals).length) {
-          goalChips = Object.keys(m.goals).map(name => {
-            const g = m.goals[name];
-            let parts = [];
-            if (g.g) parts.push(`⚽ ${g.g}`);
-            if (g.a) parts.push(`🅰 ${g.a}`);
-            return `<div class="mc-goal-badge">${name} <span>${parts.join(' ')}</span></div>`;
-          }).join('');
-        }
-        return `<div class="match-card">
-          <div class="mc-header"><span class="mc-week">${m.week}</span><span class="mc-status">MAÇ SONUCU</span></div>
-          <div class="mc-body">
-            <div class="mc-team"><div class="mc-logo">⚪</div><div class="mc-name">Beyaz Takım</div></div>
-            <div class="mc-score"><div class="mc-score-box ${s1>s2?'text-green':''}">${m.score1}</div><div class="mc-score-sep">-</div><div class="mc-score-box ${s2>s1?'text-blue':''}">${m.score2}</div></div>
-            <div class="mc-team"><div class="mc-logo color">🔵</div><div class="mc-name">Renkli Takım</div></div>
+        const win1 = s1 > s2, win2 = s2 > s1, isDraw = s1 === s2;
+        const resultLabel = isDraw ? `<span style="background:#f1f5f9;color:#64748b;font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;">BERABERLIK</span>` :
+          `<span style="background:${win1?'#ecfdf5':'#eff6ff'};color:${win1?'#065f46':'#1e40af'};font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;">${win1?'⚪ BEYAZ KAZANDI':'🔵 RENKLİ KAZANDI'}</span>`;
+
+        // Golleri takımlara göre ayır (not alanından: "Beyaz: Ahmet,Eren / Renkli: Bugay" formatı yoksa herkesi neutral göster)
+        const goalEntries = m.goals ? Object.entries(m.goals) : [];
+        const team1Goals = goalEntries.filter(([,g])=>g.t===1||g.t==='1'||g.team===1||g.team==='1');
+        const team2Goals = goalEntries.filter(([,g])=>g.t===2||g.t==='2'||g.team===2||g.team==='2');
+        const neutralGoals = goalEntries.filter(([,g])=>!g.t&&!g.team);
+
+        const goalBadge = (name, g, color) => {
+          let parts = [];
+          if (g.g) parts.push(`⚽×${g.g}`);
+          if (g.a) parts.push(`🅰×${g.a}`);
+          return `<span style="font-size:11px;font-weight:700;color:${color};background:var(--bg2);padding:5px 10px;border-radius:10px;box-shadow:var(--sh);display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);">${name} <span style="opacity:.7">${parts.join(' ')}</span></span>`;
+        };
+
+        // Tüm golleri bir arada göster (takım ayrımı yoksa)
+        const allGoalBadges = neutralGoals.length
+          ? neutralGoals.map(([n,g])=>goalBadge(n,g,'var(--text)')).join('')
+          : [...team1Goals.map(([n,g])=>goalBadge(n,g,'#065f46')), ...team2Goals.map(([n,g])=>goalBadge(n,g,'#1e40af'))].join('');
+
+        return `<div style="background:var(--bg2);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:var(--sh-card);border:1px solid var(--border);overflow:hidden;position:relative;">
+          <!-- Kazanan arkaplan efekti -->
+          ${win1?`<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:var(--green);border-radius:4px 0 0 4px;"></div>`:''}
+          ${win2?`<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#3b82f6;border-radius:4px 0 0 4px;"></div>`:''}
+          ${isDraw?`<div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#94a3b8;border-radius:4px 0 0 4px;"></div>`:''}
+
+          <!-- Header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-left:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:800;color:var(--green);background:var(--gd);padding:4px 10px;border-radius:10px;border:1px solid #10b98130;">${m.week}</span>
+              ${resultLabel}
+            </div>
+            <span style="font-size:10px;color:var(--text3);font-weight:600;">${m.date||''}</span>
           </div>
-          ${(m.note||goalChips)?`<div class="mc-footer">${m.note?`<div class="mc-note">📝 ${m.note}</div>`:''}${goalChips?`<div class="mc-goals">${goalChips}</div>`:''}</div>`:''}
+
+          <!-- Skor -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 8px;">
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">⚪ Beyaz Takım</div>
+              <div style="font-size:44px;font-weight:900;line-height:1;letter-spacing:-2px;color:${win1?'var(--green)':'var(--text)'};">${m.score1}</div>
+              ${win1?`<div style="font-size:10px;font-weight:800;color:var(--green);margin-top:4px;">KAZANAN</div>`:''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 16px;">
+              <div style="font-size:22px;color:var(--text3);font-weight:900;">—</div>
+            </div>
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">🔵 Renkli Takım</div>
+              <div style="font-size:44px;font-weight:900;line-height:1;letter-spacing:-2px;color:${win2?'#3b82f6':'var(--text)'};">${m.score2}</div>
+              ${win2?`<div style="font-size:10px;font-weight:800;color:#3b82f6;margin-top:4px;">KAZANAN</div>`:''}
+            </div>
+          </div>
+
+          <!-- Alt bilgi: not + goller -->
+          ${(m.note || allGoalBadges) ? `
+          <div style="background:var(--bg3);border-radius:14px;padding:12px;margin-top:4px;padding-left:8px;">
+            ${m.note?`<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:${allGoalBadges?'10':'0'}px;display:flex;align-items:center;gap:6px;">📝 ${m.note}</div>`:''}
+            ${allGoalBadges?`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">⚽ Goller & Asistler</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${allGoalBadges}</div>`:'' }
+          </div>` : ''}
         </div>`;
       }).join('');
     }
