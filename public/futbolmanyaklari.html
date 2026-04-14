@@ -97,10 +97,6 @@ select:disabled { opacity: 0.6; cursor: not-allowed; }
 .prog-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s cubic-bezier(0.4, 0, 0.2, 1); }
 .pcard { background: var(--bg2); border-radius: var(--r); padding: 16px; margin-bottom: 14px; box-shadow: var(--sh-card); transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid transparent;}
 .pcard.done { border-color: var(--green); background: var(--gl); box-shadow: 0 4px 12px var(--gd); }
-.pcard.absent { opacity: .5; filter: grayscale(100%); }
-.abs-btn { font-size: 11px; padding: 6px 12px; border: none; border-radius: 16px; background: var(--bg3); color: var(--text2); cursor: pointer; font-family: inherit; transition: all .2s; font-weight: 700; box-shadow: var(--sh);}
-.abs-btn:active { transform: scale(0.95); }
-.abs-btn.on { background: #ff3b30; color: #fff; box-shadow: 0 2px 8px rgba(255,59,48,0.3);}
 .pcard-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .av { width: 40px; height: 40px; border-radius: 50%; background: var(--gd); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: var(--green); flex-shrink: 0; box-shadow: 0 2px 6px var(--gd);}
 .pcard-name { font-size: 16px; font-weight: 700; flex: 1;}
@@ -723,7 +719,6 @@ const MEDALS = ['🥇','🥈','🥉'];
 let resultData = null;
 let currentScores = {};
 let completedCards = {};
-let absentPlayers = {};
 let currentRater = '';
 let darkMode = localStorage.getItem('hs_dark') === '1';
 let _sonucData = null;
@@ -923,7 +918,7 @@ function resetIdentity() {
 function onRaterChange(isInit = false) {
   const raterSel = document.getElementById('raterSelect');
   currentRater = raterSel.value;
-  currentScores = {}; completedCards = {}; absentPlayers = {};
+  currentScores = {}; completedCards = {};
   const wrap = document.getElementById('progressWrap');
   const area = document.getElementById('submitArea');
   const cards = document.getElementById('ratingCards');
@@ -945,7 +940,7 @@ function buildCards() {
   const c = document.getElementById('ratingCards');
   c.innerHTML = '<div class="no-data"><span class="spin"></span>Bu haftaki aktif oyuncular yükleniyor...</div>';
   c.style.display = 'block';
-  currentScores = {}; completedCards = {}; absentPlayers = {};
+  currentScores = {}; completedCards = {};
 
   const week = getWeekLabel();
   const cached = localStorage.getItem('hs_today_players_cache');
@@ -973,10 +968,6 @@ function buildCards() {
       return;
     }
 
-    // Bu hafta oy kullandı mı? (önce cache, sonra sheets)
-    const votedCacheKey = `hs_voted_${week}_${currentRater}`;
-    const alreadyVotedCache = localStorage.getItem(votedCacheKey) === '1';
-
     const showVotedBlock = () => {
       c.innerHTML = `<div style="text-align:center;padding:32px 16px;background:var(--bg2);border-radius:var(--r);border:2px solid var(--green);box-shadow:var(--sh-card);">
         <div style="font-size:48px;margin-bottom:16px;">✅</div>
@@ -993,16 +984,13 @@ function buildCards() {
       document.getElementById('progressWrap').style.display = 'none';
     };
 
-    if (alreadyVotedCache) { showVotedBlock(); return; }
-
-    // Cache yoksa sheets'ten kontrol et
+    // Her zaman Sheets'ten kontrol et — localStorage sadece UX hızı için, ama Sheets gerçek kaynak
+    c.innerHTML = '<div class="no-data"><span class="spin"></span>Oylama durumu kontrol ediliyor...</div>';
     gs({ action: 'checkVoted', week, rater: currentRater }).then(vd => {
       if (vd.voted) {
-        localStorage.setItem(votedCacheKey, '1');
         showVotedBlock();
         return;
       }
-      // Oy kullanmamış — kartları göster
       renderCards(activePlayers, hakemName, isHakem);
     }).catch(() => renderCards(activePlayers, hakemName, isHakem));
   };
@@ -1041,7 +1029,6 @@ function buildCards() {
           <div class="av">${p.name.charAt(0)}</div>
           <span class="pcard-name">${p.name}</span>
           <span class="pos-badge">${posShort(p)}</span>
-          <button class="abs-btn" id="abs-${pid}" onclick="toggleAbsent('${p.name}')">Gelmedi</button>
           <span class="done-badge">✓ Tamam</span>
         </div>
         ${slidersHtml}`;
@@ -1092,32 +1079,6 @@ function onSlider(pid, cr, val, did, pname) {
   }
   updateProgress();
 }
-function toggleAbsent(pname) {
-  const pid = san(pname), card = document.getElementById(`card-${pid}`), btn = document.getElementById(`abs-${pid}`);
-  const rows = card.querySelectorAll('.crit-row');
-  if (absentPlayers[pname]) {
-    delete absentPlayers[pname]; delete completedCards[pname]; delete currentScores[pname];
-    card.className = 'pcard'; btn.classList.remove('on'); btn.textContent = 'Gelmedi';
-    rows.forEach(r => { r.style.opacity = '1'; r.style.pointerEvents = 'auto'; });
-    CRITERIA.forEach((cr, ci) => {
-      const slider = card.querySelectorAll('input[type=range]')[ci];
-      const disp = document.getElementById(`d-${pid}-${san(cr)}`);
-      if (slider && +slider.value > 0) {
-        if (!currentScores[pname]) currentScores[pname] = {};
-        currentScores[pname][cr] = +slider.value;
-        if (disp) { disp.textContent = slider.value; disp.style.color = scoreColor(+slider.value); }
-      }
-    });
-    if (CRITERIA.every(c => currentScores[pname] && currentScores[pname][c] !== undefined)) {
-      completedCards[pname] = true; card.className = 'pcard done';
-    }
-  } else {
-    absentPlayers[pname] = true; completedCards[pname] = true;
-    card.className = 'pcard absent'; btn.classList.add('on'); btn.textContent = '✗ Gelmedi';
-    rows.forEach(r => { r.style.opacity = '.3'; r.style.pointerEvents = 'none'; });
-  }
-  updateProgress();
-}
 function updateProgress() {
   const others = Array.from(document.getElementById('ratingCards').querySelectorAll('.pcard'));
   const total = others.length, done = Object.keys(completedCards).length;
@@ -1130,22 +1091,19 @@ function submitRatings() {
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>İşleniyor...';
   const week = getWeekLabel();
   const filtered = {};
-  Object.keys(currentScores).forEach(p => { if (!absentPlayers[p]) filtered[p] = currentScores[p]; });
-  gs({action:'save', rater:currentRater, week, scores:JSON.stringify(filtered), absent:Object.keys(absentPlayers).join(',')})
+  Object.keys(currentScores).forEach(p => { filtered[p] = currentScores[p]; });
+  gs({action:'save', rater:currentRater, week, scores:JSON.stringify(filtered)})
     .then(d => {
       if (d.success) {
-        // Oy kullanıldı olarak işaretle
-        localStorage.setItem(`hs_voted_${week}_${currentRater}`, '1');
         btn.textContent = 'Puanları Gönder';
         localStorage.removeItem('hs_results_cache');
         resultData = null;
         loadResults(() => {}, true);
         document.getElementById('successPopup').style.display = 'flex';
       } else if (d.alreadyVoted) {
-        localStorage.setItem(`hs_voted_${week}_${currentRater}`, '1');
         showToast('Bu hafta zaten oy kullandınız!', true);
         btn.disabled = false; btn.textContent = 'Puanları Gönder';
-        buildCards(); // Voted ekranı göster
+        buildCards();
       } else {
         showToast('Bir hata oluştu, lütfen tekrar deneyin.', true);
         btn.disabled = false; btn.textContent = 'Puanları Gönder';
