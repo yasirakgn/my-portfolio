@@ -1578,45 +1578,106 @@ function renderTrend() {
     });
     const valid = scores.filter(s => s.score !== null);
     if (!valid.length) { el.innerHTML = '<div class="no-data">Yeterli veri yok.</div>'; return; }
+
+    // Dinamik ölçek — min/max etrafında padding
     const maxS = Math.max(...valid.map(s => s.score));
     const minS = Math.min(...valid.map(s => s.score));
-    const W = 320, H = 140, padL = 30, padB = 30, padT = 20, padR = 20;
+    const pad = Math.max((maxS - minS) * 0.25, 4);
+    const yMax = Math.min(99, maxS + pad);
+    const yMin = Math.max(0, minS - pad);
+
+    const W = 340, H = 160, padL = 28, padR = 16, padT = 22, padB = 28;
     const chartW = W - padL - padR, chartH = H - padT - padB;
     const n = last5weeks.length;
-    const pts = scores.map((s, i) => {
-      const x = padL + (i / (n - 1 || 1)) * chartW;
-      const y = s.score !== null ? padT + chartH - (s.score - minS + 5) / ((maxS - minS + 10) || 1) * chartH : null;
-      return { x, y, score: s.score, week: s.week };
-    });
+
+    const toX = (i) => padL + (i / Math.max(n - 1, 1)) * chartW;
+    const toY = (v) => padT + chartH - ((v - yMin) / (yMax - yMin || 1)) * chartH;
+
+    const pts = scores.map((s, i) => ({
+      x: toX(i), y: s.score !== null ? toY(s.score) : null,
+      score: s.score, week: s.week
+    }));
     const validPts = pts.filter(p => p.y !== null);
-    const pathD = validPts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' ');
+    const pathD = validPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
     const first = validPts[0], last = validPts[validPts.length - 1];
-    const svgDots = pts.map(p => {
-      if (p.y === null) return `<circle cx="${p.x}" cy="${padT + chartH / 2}" r="3" fill="var(--border)"/>`;
-      return `<circle cx="${p.x}" cy="${p.y}" r="6" fill="var(--bg2)" stroke="var(--green)" stroke-width="3"/><text x="${p.x}" y="${p.y - 12}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text)">${p.score}</text>`;
-    }).join('');
-    const svgLabels = pts.map(p => `<text x="${p.x}" y="${H - 5}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text3)">${p.week.replace(/\d{4}-/, '')}</text>`).join('');
-    const trend = valid.length > 1 ? (valid[valid.length - 1].score > valid[0].score ? '📈 Yükseliyor' : '📉 Düşüyor') : '➡️ Stabil';
+    const trendDir = valid.length > 1 ? (valid[valid.length-1].score > valid[0].score ? '↑' : valid[valid.length-1].score < valid[0].score ? '↓' : '→') : '→';
+    const trendColor = trendDir === '↑' ? 'var(--green)' : trendDir === '↓' ? '#f97316' : 'var(--text3)';
+    const trendLabel = trendDir === '↑' ? 'Yükseliyor' : trendDir === '↓' ? 'Düşüyor' : 'Stabil';
     const avg = (valid.reduce((a, s) => a + s.score, 0) / valid.length).toFixed(1);
-    el.innerHTML = `<div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div><div style="font-size:28px;font-weight:900;color:var(--green);letter-spacing:-1px;">${avg}</div><div style="font-size:12px;color:var(--text3);font-weight:600;">Son 5 hafta ort.</div></div>
-        <div style="font-size:14px;font-weight:800;background:var(--bg3);padding:8px 16px;border-radius:20px;border:1px solid var(--border);">${trend}</div>
+
+    // Y eksen grid çizgileri
+    const gridCount = 4;
+    const gridLines = Array.from({length: gridCount + 1}, (_, i) => {
+      const v = yMin + (yMax - yMin) * (i / gridCount);
+      const y = toY(v).toFixed(1);
+      return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--border)" stroke-width="0.5" opacity="0.6"/>
+              <text x="${padL - 4}" y="${y}" text-anchor="end" dominant-baseline="middle" font-size="8" fill="var(--text3)" font-weight="500">${Math.round(v)}</text>`;
+    }).join('');
+
+    // Noktalar ve değer etiketleri — ince ve küçük
+    const dotsAndLabels = pts.map(p => {
+      if (p.y === null) return `<circle cx="${p.x.toFixed(1)}" cy="${(padT + chartH/2).toFixed(1)}" r="2" fill="var(--border)" opacity="0.4"/>`;
+      const labelY = p.y < padT + 14 ? p.y + 14 : p.y - 8;
+      return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--green)" opacity="0.9"/>
+              <text x="${p.x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--green)" opacity="0.9">${p.score}</text>`;
+    }).join('');
+
+    // Hafta etiketleri
+    const weekLabels = pts.map(p => `<text x="${p.x.toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="8.5" fill="var(--text3)" font-weight="600">${p.week.replace(/\d{4}-/, '')}</text>`).join('');
+
+    // Kriter küçük istatistikler — 2 satır x 4 kolon daha temiz
+    const kritStats = CRITERIA.map((c, ci) => {
+      const vals = last5weeks.map(w => pdata.weeklyKriterler[w] ? pdata.weeklyKriterler[w][c] : null).filter(v => v != null);
+      const cavg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+      const bar = cavg !== null ? Math.round(cavg / 10 * 100) : 0;
+      const col = cavg !== null ? scoreColor(cavg) : 'var(--text3)';
+      return `<div style="padding:8px 6px;background:var(--bg3);border-radius:10px;text-align:center;border:1px solid var(--border2);">
+        <div style="font-size:13px;font-weight:900;color:${col};letter-spacing:-0.3px;">${cavg !== null ? cavg.toFixed(1) : '—'}</div>
+        <div style="font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px;">${CDISP[ci]}</div>
+        <div style="height:2px;background:var(--border2);border-radius:1px;margin-top:4px;overflow:hidden;"><div style="width:${bar}%;height:100%;background:${col};border-radius:1px;transition:width .5s;"></div></div>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <!-- Üst stat satırı -->
+      <div class="card" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Son ${n} Hafta Ort.</div>
+            <div style="font-size:32px;font-weight:900;color:var(--green);letter-spacing:-1.5px;line-height:1;">${avg}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:22px;font-weight:900;color:${trendColor};line-height:1;">${trendDir}</div>
+            <div style="font-size:11px;font-weight:700;color:${trendColor};margin-top:2px;">${trendLabel}</div>
+          </div>
+        </div>
+        <!-- SVG Grafik -->
+        <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;">
+          <defs>
+            <linearGradient id="tg2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--green)" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid -->
+          ${gridLines}
+          <!-- X ekseni -->
+          <line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="var(--border)" stroke-width="0.75"/>
+          <!-- Alan dolgusu -->
+          ${pathD && first && last ? `<path d="${pathD} L${last.x.toFixed(1)} ${(padT+chartH).toFixed(1)} L${first.x.toFixed(1)} ${(padT+chartH).toFixed(1)} Z" fill="url(#tg2)"/>` : ''}
+          <!-- Ana çizgi — ince -->
+          ${pathD ? `<path d="${pathD}" stroke="var(--green)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>` : ''}
+          <!-- Noktalar & değerler -->
+          ${dotsAndLabels}
+          <!-- Hafta etiketleri -->
+          ${weekLabels}
+        </svg>
       </div>
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;filter:drop-shadow(0 4px 6px rgba(0,0,0,.05));">
-        <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".4"/><stop offset="100%" stop-color="var(--green)" stop-opacity="0"/></linearGradient></defs>
-        ${pathD ? `<path d="${pathD} L${last.x} ${padT + chartH} L${first.x} ${padT + chartH} Z" fill="url(#tg)"/>` : ''}
-        ${pathD ? `<path d="${pathD}" stroke="var(--green)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-        ${svgDots}${svgLabels}
-      </svg>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px">
-        ${CRITERIA.map((c, ci) => {
-          const vals = valid.map(s => { const wk = last5weeks[scores.indexOf(s)]; return pdata.weeklyKriterler[wk] ? pdata.weeklyKriterler[wk][c] : null; }).filter(v => v != null);
-          const cavg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
-          return `<div style="background:var(--bg3);border-radius:16px;padding:12px;text-align:center;border:1px solid var(--border)"><div style="font-size:18px;font-weight:900;color:var(--text)">${cavg}</div><div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;margin-top:4px;">${CDISP[ci]}</div></div>`;
-        }).join('')}
+      <!-- Kriter breakdown -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px;">
+        ${kritStats}
       </div>
-    </div>`;
+    `;
   });
 }
 
@@ -1643,70 +1704,93 @@ function renderComparison() {
     const aVals = CRITERIA.map(c => getKrit(pa, c));
     const bVals = CRITERIA.map(c => getKrit(pb, c));
 
-    // ── Radar SVG ──────────────────────────────────────────────────────
-    const cx = 110, cy = 110, r = 75, n = CRITERIA.length;
+    // ── Radar SVG — etiketler için geniş viewBox ────────────────────────
+    const cx = 125, cy = 125, r = 72, n = CRITERIA.length;
     const angle = (i) => (i / n) * 2 * Math.PI - Math.PI / 2;
     const pt = (val, i) => ({ x: cx + r * (val/10) * Math.cos(angle(i)), y: cy + r * (val/10) * Math.sin(angle(i)) });
-    const polyA = aVals.map((v,i) => pt(v,i)).map(p=>`${p.x},${p.y}`).join(' ');
-    const polyB = bVals.map((v,i) => pt(v,i)).map(p=>`${p.x},${p.y}`).join(' ');
+    const polyA = aVals.map((v,i) => pt(v,i)).map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const polyB = bVals.map((v,i) => pt(v,i)).map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     const gridLines = [0.25,0.5,0.75,1].map(f => {
-      const pts = Array.from({length:n},(_,i)=>`${cx+r*f*Math.cos(angle(i))},${cy+r*f*Math.sin(angle(i))}`).join(' ');
-      return `<polygon points="${pts}" fill="none" stroke="var(--border)" stroke-width="1" opacity="0.6"/>`;
+      const gpts = Array.from({length:n},(_,i)=>`${(cx+r*f*Math.cos(angle(i))).toFixed(1)},${(cy+r*f*Math.sin(angle(i))).toFixed(1)}`).join(' ');
+      return `<polygon points="${gpts}" fill="none" stroke="var(--border)" stroke-width="0.75" opacity="0.7"/>`;
     }).join('');
-    const axes = Array.from({length:n},(_,i)=>`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(angle(i))}" y2="${cy+r*Math.sin(angle(i))}" stroke="var(--border)" stroke-width="1" opacity="0.6"/>`).join('');
+    const axes = Array.from({length:n},(_,i)=>`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(angle(i))).toFixed(1)}" y2="${(cy+r*Math.sin(angle(i))).toFixed(1)}" stroke="var(--border)" stroke-width="0.75" opacity="0.6"/>`).join('');
     const labels = CRITERIA.map((c,i)=>{
-      const lx = cx + (r+22)*Math.cos(angle(i)), ly = cy + (r+22)*Math.sin(angle(i));
-      const dominantBaseline = ly < cy-5 ? 'auto' : ly > cy+5 ? 'hanging' : 'middle';
-      return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="${dominantBaseline}" font-size="9.5" font-weight="700" fill="var(--text2)">${CDISP[i]}</text>`;
+      const lx = cx + (r+26)*Math.cos(angle(i)), ly = cy + (r+26)*Math.sin(angle(i));
+      const anchor = lx < cx-3 ? 'end' : lx > cx+3 ? 'start' : 'middle';
+      const base = ly < cy-3 ? 'auto' : ly > cy+3 ? 'hanging' : 'middle';
+      return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="${base}" font-size="9" font-weight="700" fill="var(--text2)" opacity="0.9">${CDISP[i]}</text>`;
     }).join('');
-    const dotsA = aVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="var(--green)"/>`; }).join('');
-    const dotsB = bVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#3b82f6"/>`; }).join('');
-    const radarSVG = `<svg viewBox="0 0 220 220" width="100%" style="max-width:280px;display:block;margin:0 auto;">
+    const dotsA = aVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)" opacity="0.9"/>`; }).join('');
+    const dotsB = bVals.map((v,i)=>{ const p=pt(v,i); return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="#3b82f6" opacity="0.9"/>`; }).join('');
+    const radarSVG = `<svg viewBox="0 0 250 250" width="100%" style="max-width:260px;display:block;margin:0 auto;overflow:visible;">
       <defs>
-        <linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".35"/><stop offset="100%" stop-color="var(--green)" stop-opacity=".1"/></linearGradient>
-        <linearGradient id="gb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".35"/><stop offset="100%" stop-color="#3b82f6" stop-opacity=".1"/></linearGradient>
+        <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".25"/><stop offset="100%" stop-color="var(--green)" stop-opacity=".08"/></linearGradient>
+        <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity=".25"/><stop offset="100%" stop-color="#3b82f6" stop-opacity=".08"/></linearGradient>
       </defs>
       ${gridLines}${axes}
-      <polygon points="${polyA}" fill="url(#ga)" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>
-      <polygon points="${polyB}" fill="url(#gb)" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+      <polygon points="${polyA}" fill="url(#ga)" stroke="var(--green)" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
+      <polygon points="${polyB}" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
       ${dotsA}${dotsB}${labels}
     </svg>`;
 
-    // ── Form trend (son 5 hafta) ────────────────────────────────────────
+    // ── Form trend (son 5 hafta) — ince ve düzgün ölçekli ──────────────
     const last5 = data.weeks.slice(-5);
+    const TW = 300, TH = 110, tPL = 22, tPR = 12, tPT = 18, tPB = 22;
+    const tChartW = TW - tPL - tPR, tChartH = TH - tPT - tPB;
+
+    // Tüm geçerli değerleri topla, dinamik ölçek
+    const allTrendVals = [];
+    [pa, pb].forEach(pd => last5.forEach(w => {
+      const wi = data.weeks.indexOf(w);
+      const v = pd.weeklyGenels[wi];
+      if (v != null) allTrendVals.push(v * 10);
+    }));
+    const tMax = allTrendVals.length ? Math.min(99, Math.max(...allTrendVals) + 5) : 99;
+    const tMin = allTrendVals.length ? Math.max(0, Math.min(...allTrendVals) - 5) : 0;
+
+    const tToX = (i) => tPL + (i / Math.max(last5.length - 1, 1)) * tChartW;
+    const tToY = (v) => tPT + tChartH - ((v - tMin) / (tMax - tMin || 1)) * tChartH;
+
     const trendLine = (pdata, color) => {
       const pts = last5.map((w,i) => {
         const wi = data.weeks.indexOf(w);
         const v = pdata.weeklyGenels[wi];
-        return { x: 20 + i * (220/Math.max(last5.length-1,1)), y: v !== null ? 120 - (v * 10) : null, v };
+        return { x: tToX(i), y: v !== null ? tToY(v * 10) : null, v: v !== null ? +(v * 10).toFixed(1) : null };
       });
       const valid = pts.filter(p=>p.y!==null);
       if (!valid.length) return '';
-      const path = valid.map((p,i)=>(i===0?'M':'L')+p.x+' '+p.y).join(' ');
-      const dots = pts.map(p=>p.y!==null?`<circle cx="${p.x}" cy="${p.y}" r="4" fill="${color}" stroke="var(--bg2)" stroke-width="1.5"/>`:'').join('');
-      const scores = pts.map(p=>p.y!==null?`<text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="9" font-weight="800" fill="${color}">${(p.v*10).toFixed(0)}</text>`:'').join('');
-      return `<path d="${path}" stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>${dots}${scores}`;
+      const path = valid.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+      const dots = pts.map(p=>p.y!==null ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${color}" opacity="0.9"/>` : '').join('');
+      const vals = pts.map(p=>p.y!==null ? `<text x="${p.x.toFixed(1)}" y="${(p.y - 7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="${color}" opacity="0.9">${p.v}</text>` : '').join('');
+      return `<path d="${path}" stroke="${color}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>${dots}${vals}`;
     };
-    const weekLabels = last5.map((w,i)=>`<text x="${20+i*(220/Math.max(last5.length-1,1))}" y="138" text-anchor="middle" font-size="8" fill="var(--text3)" font-weight="600">${w.replace(/\d{4}-/,'')}</text>`).join('');
-    const trendSVG = `<svg viewBox="0 0 240 150" width="100%" style="display:block;">
-      <line x1="15" y1="20" x2="15" y2="125" stroke="var(--border)" stroke-width="1"/>
-      <line x1="15" y1="125" x2="235" y2="125" stroke="var(--border)" stroke-width="1"/>
-      ${[10,7,5,3].map(v=>`<text x="10" y="${125-(v*10)}" text-anchor="end" font-size="8" fill="var(--text3)" dominant-baseline="middle">${v*10}</text><line x1="15" y1="${125-(v*10)}" x2="235" y2="${125-(v*10)}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3"/>`).join('')}
+    const tWeekLabels = last5.map((w,i)=>`<text x="${tToX(i).toFixed(1)}" y="${TH - 3}" text-anchor="middle" font-size="7.5" fill="var(--text3)" font-weight="600">${w.replace(/\d{4}-/,'')}</text>`).join('');
+    // Y eksen grid
+    const tGridLines = [0, 0.5, 1].map(f => {
+      const v = (tMin + (tMax - tMin) * f).toFixed(0);
+      const y = tToY(tMin + (tMax - tMin) * f).toFixed(1);
+      return `<line x1="${tPL}" y1="${y}" x2="${TW - tPR}" y2="${y}" stroke="var(--border)" stroke-width="0.5" opacity="0.5"/>
+              <text x="${tPL - 3}" y="${y}" text-anchor="end" dominant-baseline="middle" font-size="7" fill="var(--text3)">${v}</text>`;
+    }).join('');
+    const trendSVG = `<svg viewBox="0 0 ${TW} ${TH}" width="100%" style="display:block;overflow:visible;">
+      ${tGridLines}
+      <line x1="${tPL}" y1="${tPT + tChartH}" x2="${TW - tPR}" y2="${tPT + tChartH}" stroke="var(--border)" stroke-width="0.75"/>
       ${trendLine(pa, 'var(--green)')}${trendLine(pb, '#3b82f6')}
-      ${weekLabels}
+      ${tWeekLabels}
     </svg>`;
 
-    // ── Kritere göre duel barları ──────────────────────────────────────
+    // ── Kritere göre duel barları — kompakt ───────────────────────────
     const duelRows = CRITERIA.map((c,ci) => {
       const av = aVals[ci], bv = bVals[ci], maxv = Math.max(av, bv, 0.1);
-      const aW = Math.round(av/maxv*46), bW = Math.round(bv/maxv*46);
+      const aW = Math.round(av/maxv*44), bW = Math.round(bv/maxv*44);
       const winner = av > bv ? 'a' : bv > av ? 'b' : '';
-      return `<div style="display:grid;grid-template-columns:32px 1fr 60px 1fr 32px;align-items:center;gap:6px;margin-bottom:10px;">
-        <span style="text-align:right;font-size:${winner==='a'?'16':'13'}px;font-weight:${winner==='a'?900:600};color:${winner==='a'?'var(--green)':'var(--text3)'};">${av.toFixed(1)}</span>
-        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;display:flex;justify-content:flex-end;"><div style="width:${aW}%;background:var(--green);border-radius:4px;transition:width .5s;"></div></div>
-        <div style="text-align:center;font-size:10px;font-weight:800;color:var(--text2);letter-spacing:.5px;">${CDISP[ci]}</div>
-        <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;"><div style="width:${bW}%;background:#3b82f6;border-radius:4px;transition:width .5s;"></div></div>
-        <span style="font-size:${winner==='b'?'16':'13'}px;font-weight:${winner==='b'?900:600};color:${winner==='b'?'#3b82f6':'var(--text3)'};">${bv.toFixed(1)}</span>
+      return `<div style="display:grid;grid-template-columns:28px 1fr 50px 1fr 28px;align-items:center;gap:5px;margin-bottom:8px;">
+        <span style="text-align:right;font-size:${winner==='a'?'13':'11'}px;font-weight:${winner==='a'?900:500};color:${winner==='a'?'var(--green)':'var(--text3)'};">${av.toFixed(1)}</span>
+        <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;display:flex;justify-content:flex-end;"><div style="width:${aW}%;background:var(--green);border-radius:3px;opacity:0.9;"></div></div>
+        <div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.3px;">${CDISP[ci]}</div>
+        <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;"><div style="width:${bW}%;background:#3b82f6;border-radius:3px;opacity:0.9;"></div></div>
+        <span style="font-size:${winner==='b'?'13':'11'}px;font-weight:${winner==='b'?900:500};color:${winner==='b'?'#3b82f6':'var(--text3)'};">${bv.toFixed(1)}</span>
       </div>`;
     }).join('');
 
