@@ -337,8 +337,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
       <button class="sub-nb" onclick="setStatScreen('maclar',this)">🏟️ Maçlar</button>
     </div>
     <div id="stat-hafta" class="sub-screen active">
-      <div class="sec-title">Haftalık Performanslar</div>
-      <div id="weekSelector" class="chips" style="margin-bottom:16px;"></div>
+      <div id="weekSelectorWrap" style="margin-bottom:14px;"></div>
       <div id="weekContent"></div>
       <div id="noDataHafta" class="no-data" style="display:none">Henüz puan girilmedi.</div>
     </div>
@@ -1519,45 +1518,153 @@ function render8lik(data) {
 
 // ─── HAFTALIK ─────────────────────────────────────────────────────────────────
 function renderHafta() {
-  const sel = document.getElementById('weekSelector'), content = document.getElementById('weekContent'), nd = document.getElementById('noDataHafta');
-  sel.innerHTML = ''; content.innerHTML = '<div class="no-data"><span class="spin"></span>Yükleniyor...</div>';
+  const wrap = document.getElementById('weekSelectorWrap');
+  const content = document.getElementById('weekContent');
+  const nd = document.getElementById('noDataHafta');
+  wrap.innerHTML = ''; content.innerHTML = '<div class="no-data"><span class="spin"></span>Yükleniyor...</div>';
   if (nd) nd.style.display = 'none';
   loadResults(data => {
     content.innerHTML = '';
     if (!data || !data.weeks || !data.weeks.length) { if (nd) nd.style.display = 'block'; return; }
     const weeks = data.weeks.slice().reverse();
-    weeks.forEach((w, i) => {
-      const btn = document.createElement('button');
-      btn.className = `chip ${i === 0 ? 'active' : ''}`;
-      if (i === 0) { btn.style.background = 'var(--text)'; btn.style.color = 'var(--bg)'; btn.style.borderColor = 'var(--text)'; }
-      btn.textContent = w;
-      btn.onclick = () => {
-        document.querySelectorAll('#weekSelector .chip').forEach(b => { b.style.background = 'var(--bg3)'; b.style.color = 'var(--text2)'; b.style.borderColor = 'var(--border)'; });
-        btn.style.background = 'var(--text)'; btn.style.color = 'var(--bg)'; btn.style.borderColor = 'var(--text)';
-        renderWeek(w, data);
-      };
-      sel.appendChild(btn);
-    });
+    // Hafta seçici — yatay scroll, aktif hafta büyük, katılım oranı göster
+    wrap.innerHTML = `
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;" id="weekSelector">
+        ${weeks.map((w, i) => {
+          const wi = data.weeks.indexOf(w);
+          const participants = data.players.filter(p => p.weeklyGenels[wi] != null).length;
+          const total = PLAYERS.length;
+          return `<button onclick="selectWeekBtn(this,'${w}')" data-week="${w}"
+            style="flex-shrink:0;border:none;cursor:pointer;font-family:inherit;transition:all .25s cubic-bezier(0.4,0,0.2,1);
+                   padding:${i===0?'12px 18px':'10px 14px'};border-radius:16px;text-align:left;
+                   background:${i===0?'var(--text)':'var(--bg2)'};
+                   color:${i===0?'var(--bg)':'var(--text2)'};
+                   box-shadow:${i===0?'0 4px 12px rgba(0,0,0,0.2)':'var(--sh)'};
+                   border:1px solid ${i===0?'transparent':'var(--border)'};">
+            <div style="font-size:${i===0?'13':'11'}px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;">${w}</div>
+            <div style="font-size:9px;font-weight:700;margin-top:2px;opacity:${i===0?0.7:0.5};white-space:nowrap;">${participants}/${total} oy</div>
+          </button>`;
+        }).join('')}
+      </div>`;
     renderWeek(weeks[0], data);
   });
 }
+
+function selectWeekBtn(btn, week) {
+  document.querySelectorAll('#weekSelector button').forEach(b => {
+    b.style.background = 'var(--bg2)';
+    b.style.color = 'var(--text2)';
+    b.style.boxShadow = 'var(--sh)';
+    b.style.borderColor = 'var(--border)';
+    b.style.padding = '10px 14px';
+    b.querySelector('div').style.fontSize = '11px';
+  });
+  btn.style.background = 'var(--text)';
+  btn.style.color = 'var(--bg)';
+  btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  btn.style.borderColor = 'transparent';
+  btn.style.padding = '12px 18px';
+  btn.querySelector('div').style.fontSize = '13px';
+  // Seçili haftayı görünür yap
+  btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  // Data gerekiyor — loadResults'ten çek
+  loadResults(data => renderWeek(week, data));
+}
+
 function renderWeek(week, data) {
   const content = document.getElementById('weekContent');
   const wi = data.weeks.indexOf(week);
-  const wp = data.players.map(p => ({ name: p.name, score: p.weeklyGenels[wi], kr: p.weeklyKriterler[week] || {} }))
-    .filter(p => p.score != null).sort((a, b) => b.score - a.score);
+  const wp = data.players
+    .map(p => ({ name: p.name, score: p.weeklyGenels[wi], kr: p.weeklyKriterler[week] || {} }))
+    .filter(p => p.score != null)
+    .sort((a, b) => b.score - a.score);
   if (!wp.length) { content.innerHTML = '<div class="no-data">Bu hafta veri yok.</div>'; return; }
-  const max = Math.max(...wp.map(p => p.score));
-  let html = '<table class="rtbl"><thead><tr><th>#</th><th>Oyuncu</th><th>Rating</th></tr></thead><tbody>';
+
+  const maxScore = Math.max(...wp.map(p => p.score));
+  const minScore = Math.min(...wp.map(p => p.score));
+  const totalVoters = data.ratersPerWeek ? (data.ratersPerWeek[week] || []).length : '?';
+
+  // Hafta özet header
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+      <div style="background:var(--bg2);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--sh-card);border:1px solid var(--border2);">
+        <div style="font-size:22px;font-weight:900;color:var(--text);letter-spacing:-1px;">${wp.length}</div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">Değerlendirilen</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--sh-card);border:1px solid var(--border2);">
+        <div style="font-size:22px;font-weight:900;color:var(--green);letter-spacing:-1px;">${(maxScore * 10).toFixed(0)}</div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">En Yüksek</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--sh-card);border:1px solid var(--border2);">
+        <div style="font-size:22px;font-weight:900;color:var(--text);letter-spacing:-1px;">${totalVoters}</div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">Oy Kullanan</div>
+      </div>
+    </div>`;
+
+  // Oyuncu kartları — kompakt ama detaylı liste
   wp.forEach((p, i) => {
-    const pct = (p.score / max * 100).toFixed(0);
-    const chips = CRITERIA.map((c, ci) => {
-      const v = p.kr[c] != null ? Number(p.kr[c]).toFixed(1) : '—';
-      return `<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--bg3);color:var(--text2);margin-right:4px;margin-bottom:4px;display:inline-block;border:1px solid var(--border);">${CDISP[ci]}: <b style="color:var(--green)">${v}</b></span>`;
+    const r10 = (p.score * 10);
+    const pct = ((p.score - minScore) / (maxScore - minScore || 1) * 100).toFixed(0);
+    const pObj = PLAYERS.find(pl => pl.name === p.name) || { pos: ['OMO'] };
+    const photoUrl = getPlayerPhoto(p.name);
+    const posKey = normPos(pObj)[0] || 'OMO';
+    const posEmoji = { KL:'🧤', DEF:'🛡️', OMO:'⚙️', FRV:'⚡' }[posKey] || '⚽';
+    const rankDisplay = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:13px;font-weight:900;color:var(--text3);">${i+1}</span>`;
+    const rCol = r10 >= 80 ? '#f59e0b' : r10 >= 70 ? 'var(--green)' : r10 >= 55 ? '#60a5fa' : 'var(--text3)';
+    const isTop = i < 3;
+
+    // Kriter mini bar satırı
+    const kritBars = CRITERIA.map((c, ci) => {
+      const v = p.kr[c];
+      const vn = v != null ? +v : null;
+      const barW = vn !== null ? Math.round(vn / 10 * 100) : 0;
+      const barCol = vn !== null ? (vn >= 8 ? '#4ade80' : vn >= 6 ? '#fbbf24' : '#f87171') : 'var(--border)';
+      return `<div style="flex:1;min-width:0;">
+        <div style="font-size:7px;font-weight:700;color:var(--text3);text-align:center;margin-bottom:2px;letter-spacing:.2px;">${CDISP[ci]}</div>
+        <div style="height:3px;background:var(--border2);border-radius:2px;overflow:hidden;">
+          <div style="width:${barW}%;height:100%;background:${barCol};border-radius:2px;"></div>
+        </div>
+        <div style="font-size:7px;font-weight:800;color:${barCol};text-align:center;margin-top:2px;">${vn!==null?vn.toFixed(1):'—'}</div>
+      </div>`;
     }).join('');
-    html += `<tr><td style="font-size:16px;font-weight:900;color:var(--green)">${MEDALS[i]||i+1}</td><td><div style="font-weight:800;margin-bottom:8px;font-size:15px;letter-spacing:-0.3px;">${p.name}</div><div>${chips}</div></td><td style="min-width:100px;"><div class="bar-cell"><div class="mbar"><div class="mfill" style="width:${pct}%"></div></div><span style="font-size:15px;font-weight:900;color:var(--green);white-space:nowrap">${Number(p.score).toFixed(2)}</span></div></td></tr>`;
+
+    html += `
+      <div style="background:var(--bg2);border-radius:18px;padding:14px;margin-bottom:10px;
+                  box-shadow:${isTop?'0 4px 16px rgba(0,0,0,0.1)':'var(--sh-card)'};
+                  border:1px solid ${isTop?'var(--border)':'var(--border2)'};
+                  position:relative;overflow:hidden;transition:transform .2s;"
+           onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        ${isTop ? `<div style="position:absolute;top:0;left:0;right:0;height:2px;background:${i===0?'linear-gradient(90deg,#f59e0b,#d97706)':i===1?'linear-gradient(90deg,#94a3b8,#cbd5e1)':'linear-gradient(90deg,#b45309,#d97706)'};"></div>` : ''}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <!-- Rank -->
+          <div style="width:28px;text-align:center;flex-shrink:0;font-size:18px;">${rankDisplay}</div>
+          <!-- Avatar/foto -->
+          <div style="width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);">
+            ${photoUrl
+              ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.style.display='none'">`
+              : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:var(--green);">${p.name.charAt(0)}</div>`}
+          </div>
+          <!-- İsim & mevki -->
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;letter-spacing:-0.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-top:1px;">${posEmoji} ${POS[posKey]||posKey}</div>
+          </div>
+          <!-- Skor -->
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:28px;font-weight:900;color:${rCol};letter-spacing:-1.5px;line-height:1;">${r10.toFixed(1)}</div>
+            <div style="font-size:8px;font-weight:700;color:var(--text3);text-align:right;margin-top:1px;">PUAN</div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="height:3px;background:var(--border2);border-radius:2px;overflow:hidden;margin-bottom:10px;">
+          <div style="width:${pct}%;height:100%;background:${rCol};border-radius:2px;transition:width .6s cubic-bezier(0.16,1,0.3,1);"></div>
+        </div>
+        <!-- Kriter breakdown -->
+        <div style="display:flex;gap:4px;">${kritBars}</div>
+      </div>`;
   });
-  content.innerHTML = html + '</tbody></table>';
+
+  content.innerHTML = html;
 }
 
 // ─── TREND ────────────────────────────────────────────────────────────────────
@@ -1892,41 +1999,155 @@ function renderSezon() {
     if (!data || !data.players || !data.weeks || !data.weeks.length) { el.innerHTML = '<div class="no-data">Henüz yeterli veri yok.</div>'; return; }
     const players = data.players.filter(p => p.genelOrt !== null);
     if (!players.length) { el.innerHTML = '<div class="no-data">Henüz puan girilmedi.</div>'; return; }
+
+    const totalWeeks = data.weeks.length;
+    const kritAvg = (p, c) => { let vals = []; if (p.weeklyKriterler) Object.values(p.weeklyKriterler).forEach(wk => { if (wk && wk[c] != null) vals.push(+wk[c]); }); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0; };
+    const attendCount = (p) => p.weeklyGenels.filter(v => v != null).length;
+    const stddev = (p) => { const vals = p.weeklyGenels.filter(v => v != null); if (vals.length < 2) return 999; const avg = vals.reduce((a,b)=>a+b,0)/vals.length; return Math.sqrt(vals.reduce((a,v)=>a+Math.pow(v-avg,2),0)/vals.length); };
+
     const sorted = [...players].sort((a, b) => {
       const paObj = PLAYERS.find(pl => pl.name === a.name) || { pos: ['OMO'] };
       const pbObj = PLAYERS.find(pl => pl.name === b.name) || { pos: ['OMO'] };
       return (posRating(b, pbObj) || 0) - (posRating(a, paObj) || 0);
     });
+
+    // Ödül sahipleri
     const mvp = sorted[0];
-    const stddev = (p) => { const vals = p.weeklyGenels.filter(v => v != null); if (vals.length < 2) return 999; const avg = vals.reduce((a,b)=>a+b,0)/vals.length; return Math.sqrt(vals.reduce((a,v)=>a+Math.pow(v-avg,2),0)/vals.length); };
-    const mossCon = [...players].sort((a, b) => stddev(a) - stddev(b))[0];
-    const mostValuable = [...players].sort((a, b) => calcMarketValue(b, data) - calcMarketValue(a, data))[0];
-    const attendCount = (p) => p.weeklyGenels.filter(v => v != null).length;
-    const mostAttend = [...players].sort((a, b) => attendCount(b) - attendCount(a))[0];
-    const kritAvg = (p, c) => { let vals = []; if (p.weeklyKriterler) Object.values(p.weeklyKriterler).forEach(wk => { if (wk && wk[c] != null) vals.push(+wk[c]); }); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0; };
-    const bestDef = [...players].sort((a, b) => kritAvg(b,'Savunma') - kritAvg(a,'Savunma'))[0];
-    const bestFwd = [...players].sort((a, b) => kritAvg(b,'Sut') - kritAvg(a,'Sut'))[0];
-    const bestPass = [...players].sort((a, b) => kritAvg(b,'Pas') - kritAvg(a,'Pas'))[0];
-    const bestSpeed = [...players].sort((a, b) => kritAvg(b,'Hiz / Kondisyon') - kritAvg(a,'Hiz / Kondisyon'))[0];
-    const awards = [
-      { icon:'👑', title:'Sezon MVP', name:mvp.name, val:`Rating: ${Math.min(99,Math.round((posRating(mvp, PLAYERS.find(pl=>pl.name===mvp.name)||{pos:['OMO']})||0)*10))}` },
-      { icon:'💎', title:'En Değerli', name:mostValuable.name, val:formatMoney(calcMarketValue(mostValuable,data)) },
-      { icon:'🎯', title:'En Tutarlı', name:mossCon.name, val:`Sapma: ${stddev(mossCon).toFixed(2)}` },
-      { icon:'📅', title:'Demirbaş', name:mostAttend.name, val:`${attendCount(mostAttend)} Maç` },
-      { icon:'🧱', title:'Duvar', name:bestDef.name, val:`Savunma: ${kritAvg(bestDef,'Savunma').toFixed(1)}` },
-      { icon:'🚀', title:'Goleador', name:bestFwd.name, val:`Şut: ${kritAvg(bestFwd,'Sut').toFixed(1)}` },
-      { icon:'🪄', title:'Maestro', name:bestPass.name, val:`Pas: ${kritAvg(bestPass,'Pas').toFixed(1)}` },
-      { icon:'🏎️', title:'Flaş', name:bestSpeed.name, val:`Hız: ${kritAvg(bestSpeed,'Hiz / Kondisyon').toFixed(1)}` }
-    ];
-    let html = `<div class="award-grid">${awards.map(a=>`<div class="award-card"><div class="award-icon">${a.icon}</div><div class="award-title">${a.title}</div><div class="award-name">${a.name}</div><div class="award-val">${a.val}</div></div>`).join('')}</div>`;
-    html += '<div class="sec-title">Genel Klasman & Piyasa Değeri</div>';
-    html += '<table class="rtbl"><thead><tr><th>#</th><th>Oyuncu</th><th>Puan</th><th>Değer</th></tr></thead><tbody>';
-    sorted.slice(0,10).forEach((p, i) => {
+    const mostValuable = [...players].sort((a,b) => calcMarketValue(b,data) - calcMarketValue(a,data))[0];
+    const mostCon = [...players].sort((a,b) => stddev(a) - stddev(b))[0];
+    const mostAttend = [...players].sort((a,b) => attendCount(b) - attendCount(a))[0];
+    const bestDef = [...players].sort((a,b) => kritAvg(b,'Savunma') - kritAvg(a,'Savunma'))[0];
+    const bestFwd = [...players].sort((a,b) => kritAvg(b,'Sut') - kritAvg(a,'Sut'))[0];
+    const bestPass = [...players].sort((a,b) => kritAvg(b,'Pas') - kritAvg(a,'Pas'))[0];
+    const bestSpeed = [...players].sort((a,b) => kritAvg(b,'Hiz / Kondisyon') - kritAvg(a,'Hiz / Kondisyon'))[0];
+
+    // Lider 3 — büyük podium
+    const podium = sorted.slice(0, 3);
+    const podiumOrder = [1, 0, 2]; // 2. - 1. - 3. sırası (ortada 1.)
+    const podiumColors = ['#94a3b8', '#f59e0b', '#b45309'];
+    const podiumH = [80, 110, 60]; // yükseklikler
+    const podiumLabels = ['2.', '1.', '3.'];
+
+    let html = '';
+
+    // ── SEZON BAŞLIĞI ──────────────────────────────────────────────────
+    html += `
+      <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0f172a 100%);border-radius:20px;padding:20px;margin-bottom:16px;text-align:center;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 20px,rgba(255,255,255,0.02) 20px,rgba(255,255,255,0.02) 21px);pointer-events:none;"></div>
+        <div style="font-size:11px;font-weight:800;color:rgba(96,165,250,0.8);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">SEZON ÖZET</div>
+        <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;margin-bottom:4px;">${totalWeeks} Hafta Tamamlandı</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;">${players.length} oyuncu · ${data.weeks[0]} → ${data.weeks[totalWeeks-1]}</div>
+      </div>`;
+
+    // ── PODIUM ─────────────────────────────────────────────────────────
+    if (podium.length >= 1) {
+      html += `<div style="margin-bottom:20px;">
+        <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;text-align:center;margin-bottom:14px;">🏆 Sezon Şampiyonları</div>
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:6px;height:180px;">`;
+
+      podiumOrder.forEach((pi, slot) => {
+        const p = podium[pi];
+        if (!p) return;
+        const pObjS = PLAYERS.find(pl => pl.name === p.name) || { pos: ['OMO'] };
+        const r = Math.min(99, Math.round((posRating(p, pObjS) || 0) * 10));
+        const photo = getPlayerPhoto(p.name);
+        const col = podiumColors[slot];
+        const h = podiumH[slot];
+        const isFirst = pi === 0;
+
+        html += `<div style="flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:0;">
+          <!-- Avatar -->
+          <div style="width:${isFirst?56:46}px;height:${isFirst?56:46}px;border-radius:50%;overflow:hidden;border:2px solid ${col};box-shadow:0 4px 16px ${col}44;flex-shrink:0;background:var(--bg3);margin-bottom:6px;position:relative;">
+            ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:top;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${isFirst?20:16}px;font-weight:900;color:${col};">${p.name.charAt(0)}</div>`}
+            ${isFirst ? `<div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:16px;">👑</div>` : ''}
+          </div>
+          <div style="font-size:${isFirst?12:10}px;font-weight:800;color:var(--text);letter-spacing:-0.3px;margin-bottom:2px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
+          <div style="font-size:${isFirst?18:15}px;font-weight:900;color:${col};letter-spacing:-1px;margin-bottom:6px;">${r}</div>
+          <!-- Podium basamak -->
+          <div style="width:100%;height:${h}px;background:linear-gradient(to bottom,${col}22,${col}11);border:1px solid ${col}44;border-bottom:none;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;">
+            <span style="font-size:${isFirst?26:20}px;font-weight:900;color:${col};opacity:0.7;">${podiumLabels[slot]}</span>
+          </div>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // ── TAM PUAN TABLOSU ───────────────────────────────────────────────
+    html += `<div style="margin-bottom:20px;">
+      <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">📊 Puan Sıralaması</div>`;
+
+    sorted.forEach((p, i) => {
       const pObjS = PLAYERS.find(pl => pl.name === p.name) || { pos: ['OMO'] };
       const r = Math.min(99, Math.round((posRating(p, pObjS) || 0) * 10));
-      html += `<tr><td style="font-weight:900;color:var(--green);font-size:16px;">${MEDALS[i]||i+1}</td><td style="font-weight:800;font-size:15px;">${p.name}</td><td style="font-weight:900;font-size:18px;">${r}</td><td style="color:var(--green);font-weight:800;">${formatMoney(calcMarketValue(p,data))}</td></tr>`;
+      const mv = calcMarketValue(p, data);
+      const att = attendCount(p);
+      const attPct = totalWeeks ? Math.round(att / totalWeeks * 100) : 0;
+      const photo = getPlayerPhoto(p.name);
+      const rCol = r >= 85 ? '#f59e0b' : r >= 75 ? '#94a3b8' : r >= 65 ? '#b45309' : '#3b82f6';
+      const isTop3 = i < 3;
+      const rankIcons = ['🥇','🥈','🥉'];
+
+      // Bu haftanın trendi (son 2 hafta)
+      const recentVals = p.weeklyGenels.filter(v => v != null).slice(-2);
+      const trend = recentVals.length >= 2 ? (recentVals[1] > recentVals[0] ? '↑' : recentVals[1] < recentVals[0] ? '↓' : '→') : '—';
+      const trendCol = trend === '↑' ? '#4ade80' : trend === '↓' ? '#f87171' : 'var(--text3)';
+
+      html += `
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;margin-bottom:8px;
+                    background:var(--bg2);border-radius:16px;
+                    border:1px solid ${isTop3?'var(--border)':'var(--border2)'};
+                    box-shadow:${isTop3?'var(--sh-card)':'none'};
+                    position:relative;overflow:hidden;transition:transform .15s;"
+             onmouseover="this.style.transform='translateX(3px)'" onmouseout="this.style.transform=''">
+          ${isTop3 ? `<div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${rCol};border-radius:3px 0 0 3px;"></div>` : ''}
+          <div style="width:24px;text-align:center;flex-shrink:0;font-size:${isTop3?'18':'13'}px;font-weight:900;color:${isTop3?'var(--text)':'var(--text3)'};">${rankIcons[i]||i+1}</div>
+          <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);">
+            ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.style.display='none'">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${rCol};">${p.name.charAt(0)}</div>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+              <span style="font-size:9px;font-weight:700;color:var(--text3);">${formatMoney(mv)}</span>
+              <span style="font-size:9px;color:var(--text3);">·</span>
+              <span style="font-size:9px;font-weight:700;color:var(--text3);">%${attPct} devm.</span>
+              <span style="font-size:9px;color:var(--text3);">·</span>
+              <span style="font-size:10px;font-weight:900;color:${trendCol};">${trend}</span>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:24px;font-weight:900;color:${rCol};letter-spacing:-1px;line-height:1;">${r}</div>
+            <div style="font-size:8px;font-weight:700;color:var(--text3);margin-top:1px;">${att}/${totalWeeks} maç</div>
+          </div>
+        </div>`;
     });
-    el.innerHTML = html + '</tbody></table>';
+    html += `</div>`;
+
+    // ── ÖDÜLLER ────────────────────────────────────────────────────────
+    const awards = [
+      { icon:'👑', bg:'linear-gradient(135deg,#422006,#b45309)', col:'#fde047', title:'MVP', sub:'En Yüksek Rating', name:mvp.name, val:Math.min(99,Math.round((posRating(mvp,PLAYERS.find(pl=>pl.name===mvp.name)||{pos:['OMO']})||0)*10)) + ' puan' },
+      { icon:'💎', bg:'linear-gradient(135deg,#0f172a,#1e40af)', col:'#93c5fd', title:'En Değerli', sub:'Piyasa Değeri', name:mostValuable.name, val:formatMoney(calcMarketValue(mostValuable,data)) },
+      { icon:'🎯', bg:'linear-gradient(135deg,#064e3b,#065f46)', col:'#6ee7b7', title:'Demir Gibi', sub:'En Tutarlı', name:mostCon.name, val:'σ='+stddev(mostCon).toFixed(2) },
+      { icon:'📅', bg:'linear-gradient(135deg,#312e81,#4338ca)', col:'#c7d2fe', title:'Demirbaş', sub:'En Devam Eden', name:mostAttend.name, val:attendCount(mostAttend)+'/'+totalWeeks+' maç' },
+      { icon:'🧱', bg:'linear-gradient(135deg,#1c1917,#44403c)', col:'#d6d3d1', title:'Beton Duvar', sub:'Savunma Ustası', name:bestDef.name, val:'Def '+kritAvg(bestDef,'Savunma').toFixed(1) },
+      { icon:'🚀', bg:'linear-gradient(135deg,#450a0a,#991b1b)', col:'#fca5a5', title:'Gol Makinesi', sub:'Şut Ustası', name:bestFwd.name, val:'Şut '+kritAvg(bestFwd,'Sut').toFixed(1) },
+      { icon:'🎩', bg:'linear-gradient(135deg,#1e1b4b,#3730a3)', col:'#a5b4fc', title:'Maestro', sub:'Pas Ustası', name:bestPass.name, val:'Pas '+kritAvg(bestPass,'Pas').toFixed(1) },
+      { icon:'⚡', bg:'linear-gradient(135deg,#422006,#92400e)', col:'#fcd34d', title:'Rüzgar', sub:'En Hızlı/Kondisyonlu', name:bestSpeed.name, val:'Hız '+kritAvg(bestSpeed,'Hiz / Kondisyon').toFixed(1) }
+    ];
+
+    html += `<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">🏅 Özel Ödüller</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+        ${awards.map(a => `
+          <div style="background:${a.bg};border-radius:18px;padding:14px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.25);transition:transform .2s;"
+               onmouseover="this.style.transform='translateY(-3px) scale(1.02)'" onmouseout="this.style.transform=''">
+            <div style="position:absolute;top:-10px;right:-10px;font-size:48px;opacity:0.12;pointer-events:none;">${a.icon}</div>
+            <div style="font-size:22px;margin-bottom:6px;">${a.icon}</div>
+            <div style="font-size:9px;font-weight:800;color:${a.col};opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">${a.title}</div>
+            <div style="font-size:15px;font-weight:900;color:#fff;letter-spacing:-0.4px;margin-bottom:1px;">${a.name}</div>
+            <div style="font-size:10px;font-weight:700;color:${a.col};opacity:0.9;">${a.val}</div>
+          </div>`).join('')}
+      </div>`;
+
+    el.innerHTML = html;
   });
 }
 
