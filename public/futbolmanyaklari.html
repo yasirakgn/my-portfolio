@@ -416,6 +416,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
       <button class="sub-nb" onclick="setAdminTab('bugun',this)">📋 Bugün Gelenler</button>
       <button class="sub-nb" onclick="setAdminTab('hakem',this)">🟡 Hakem</button>
       <button class="sub-nb" onclick="setAdminTab('yayin',this)">🎬 Yayın</button>
+      <button class="sub-nb" onclick="setAdminTab('hafta',this)">📅 Hafta</button>
       <button class="sub-nb" onclick="setAdminTab('ayarlar',this)">⚙️ Oyuncular</button>
     </div>
 
@@ -538,6 +539,27 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
         <div class="stitle" style="margin-bottom:12px;">📺 Mevcut Yayınlar</div>
         <div id="adminVideoList"><div class="no-data"><span class="spin"></span>Yükleniyor...</div></div>
         <button class="abtn" onclick="loadAdminVideos()" style="margin-top:12px;width:100%;text-align:center;">🔄 Yenile</button>
+      </div>
+    </div>
+
+    <!-- HAFFA AYARLARI TAB -->
+    <div id="admin-hafta" class="sub-screen">
+      <div class="card">
+        <div class="slabel">Hafta Yönetimi</div>
+        <div class="stitle" style="margin-bottom:4px;">📅 Aktif Hafta</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:20px;">Sistemin kullanacağı haftayı manuel olarak ayarlayın. Otomatik artma devre dışı.</div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Mevcut Hafta</div>
+          <div style="font-size:28px;font-weight:900;color:var(--green);margin-bottom:12px;" id="currentWeekDisplay">Yükleniyor...</div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Yeni Hafta Ayarla</div>
+          <input type="text" id="newWeekInput" placeholder="Örn: 2026-H16" style="background:var(--bg2);">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="sub-btn" style="flex:1;" onclick="saveCurrentWeek()">💾 Kaydet</button>
+          <button class="abtn" style="margin:0;" onclick="resetWeekToAuto()">🔄 Otomatik (Geçici)</button>
+        </div>
       </div>
     </div>
 
@@ -733,6 +755,7 @@ let _videosData = null;
 let _currentVideoWeek = null;
 let _hakemData = { week: '', hakem: '' };
 let _selectedHakem = '';
+let _manualWeek = null;
 
 if (darkMode) document.body.classList.add('dark');
 
@@ -783,6 +806,11 @@ function posLabel(p) { return normPos(p).map(k => POS[k] || k).join(' / '); }
 function posShort(p) { return posLabel(p); }
 function getPlayerPhoto(name) { return PLAYER_PHOTOS[name] ? BASE_URL + PLAYER_PHOTOS[name] : ''; }
 function getWeekLabel() {
+  if (_manualWeek) return _manualWeek;
+  const now = new Date(), start = new Date(now.getFullYear(), 0, 1);
+  return now.getFullYear() + '-H' + String(Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7)).padStart(2, '0');
+}
+function getAutoWeekLabel() {
   const now = new Date(), start = new Date(now.getFullYear(), 0, 1);
   return now.getFullYear() + '-H' + String(Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7)).padStart(2, '0');
 }
@@ -809,17 +837,19 @@ function cardClass(r) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   updateDarkBtn();
-  document.getElementById('matchWeek').value = getWeekLabel();
-  loadPlayersFromSheets(() => {
-    loadMevkilerFromSheets(() => {
-      initSelects();
-      renderPlayerList();
-      buildGoalInputs();
-      checkIdentityLock();
-      setTimeout(() => {
-        loadResults(() => {}, false);
-        loadMatchHistory();
-      }, 500);
+  loadManualWeek(() => {
+    document.getElementById('matchWeek').value = getWeekLabel();
+    loadPlayersFromSheets(() => {
+      loadMevkilerFromSheets(() => {
+        initSelects();
+        renderPlayerList();
+        buildGoalInputs();
+        checkIdentityLock();
+        setTimeout(() => {
+          loadResults(() => {}, false);
+          loadMatchHistory();
+        }, 500);
+      });
     });
   });
 });
@@ -1037,11 +1067,10 @@ function buildCards() {
     updateProgress();
   };
 
-  // Hakem + bugün gelenler cache kontrolü
-  const haveTodayCache = (cachedWeek === week && cachedList);
-  const haveHakemCache = (cachedHakemWeek === week);
+  // Önbellek kontrolü: manuel hafta ayarlanmışsa önbelleği KULLANMA, her zaman Sheets'ten çek
+  const useCache = !_manualWeek && (cachedWeek === week && cachedList) && (cachedHakemWeek === week);
 
-  if (haveTodayCache && haveHakemCache) {
+  if (useCache) {
     renderWithData(cachedList, cachedHakemName);
     // arka planda taze veri çek
     Promise.all([
@@ -1168,6 +1197,7 @@ function setAdminTab(id, btnElement) {
     if (wInput && !wInput.value) wInput.value = getWeekLabel();
     loadAdminVideos();
   }
+  if (id === 'hafta') loadHaftaTab();
 }
 
 // ─── BUGÜN GELENLER (ADMİN) ──────────────────────────────────────────────────
@@ -2845,6 +2875,83 @@ function adminSaveVideo() {
     if (d.success) { showToast('Yayın kaydedildi! ✓'); document.getElementById('adminVideoUrl').value = ''; document.getElementById('adminVideoTitle').value = ''; _videosData = null; }
     else { showToast('Kayıt hatası.', true); }
   }).catch(() => { btn.disabled = false; btn.textContent = '💾 Kaydet'; showToast('Bağlantı hatası.', true); });
+}
+
+// ─── HAFFA YÖNETİMİ ────────────────────────────────────────────────────────────
+function loadManualWeek(cb) {
+  const cached = localStorage.getItem('hs_manual_week');
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      if (data && data.week) {
+        _manualWeek = data.week;
+      }
+    } catch(e) {}
+  }
+  gs({action:'getManualWeek'}).then(d => {
+    if (d && d.week) {
+      _manualWeek = d.week;
+      localStorage.setItem('hs_manual_week', JSON.stringify({ week: _manualWeek }));
+    }
+    if (cb) cb();
+  }).catch(() => { if (cb) cb(); });
+}
+
+function saveCurrentWeek() {
+  const newWeek = document.getElementById('newWeekInput').value.trim();
+  if (!newWeek) { showToast('Hafta boş olamaz!', true); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  gs({action:'saveManualWeek', week: newWeek}).then(d => {
+    btn.disabled = false; btn.textContent = '💾 Kaydet';
+    if (d.success) {
+      _manualWeek = newWeek;
+      localStorage.setItem('hs_manual_week', JSON.stringify({ week: _manualWeek }));
+      
+      // Tüm ilgili önbellekleri temizle
+      localStorage.removeItem('hs_today_players_cache');
+      localStorage.removeItem('hs_hakem_cache');
+      localStorage.removeItem('hs_results_cache');
+      localStorage.removeItem('hs_matches_cache');
+      
+      document.getElementById('currentWeekDisplay').textContent = _manualWeek;
+      document.getElementById('matchWeek').value = _manualWeek;
+      showToast('Hafta başarıyla güncellendi! ✓');
+    } else {
+      showToast('Kaydetme hatası.', true);
+    }
+  }).catch(() => {
+    btn.disabled = false; btn.textContent = '💾 Kaydet';
+    showToast('Bağlantı hatası.', true);
+  });
+}
+
+function resetWeekToAuto() {
+  showConfirm('Otomatik haftaya dönmek istediğinize emin misiniz? (Yalnızca bu oturum için)', () => {
+    _manualWeek = null;
+    
+    // Tüm ilgili önbellekleri temizle
+    localStorage.removeItem('hs_today_players_cache');
+    localStorage.removeItem('hs_hakem_cache');
+    localStorage.removeItem('hs_results_cache');
+    localStorage.removeItem('hs_matches_cache');
+    
+    const autoWeek = getAutoWeekLabel();
+    document.getElementById('currentWeekDisplay').textContent = autoWeek + ' (Otomatik)';
+    document.getElementById('matchWeek').value = autoWeek;
+    showToast('Otomatik hafta aktif!');
+  });
+}
+
+function loadHaftaTab() {
+  const displayEl = document.getElementById('currentWeekDisplay');
+  const inputEl = document.getElementById('newWeekInput');
+  if (displayEl) {
+    displayEl.textContent = _manualWeek ? _manualWeek : getAutoWeekLabel() + ' (Otomatik)';
+  }
+  if (inputEl && !inputEl.value) {
+    inputEl.value = _manualWeek || getAutoWeekLabel();
+  }
 }
 </script>
 </body>
